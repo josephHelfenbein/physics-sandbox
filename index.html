@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Physics Sandbox</title>
+<link rel="stylesheet" type="text/css" href="style.css" />
+<script
+      src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
+      integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
+      crossorigin="anonymous"
+      defer></script>
+  <script type="module" src="script.js"></script>
+</head>
+<body>
+    <canvas id="webglCanvas" width="960" height="720"></canvas>
+    <div id="uiRect">
+        <div id="spawnRect">
+            <select name="object-choice" id="object-choice">
+                <option value="sphere">Sphere</option>
+                <option value="cube">Cube</option>
+            </select>
+            <label for="x-input" class="xyz-label">x:</label>
+            <input type="number" class="xyz-input" step="0.01" value="0" id="x-input" name="x-input"></input>
+            <label for="y-input" class="xyz-label">y:</label>
+            <input type="number" class="xyz-input" step="0.01" value="0" id="y-input" name="y-input"></input>
+            <label for="z-input" class="xyz-label">z:</label>
+            <input type="number" class="xyz-input" step="0.01" value="0" id="z-input" name="z-input"></input>
+            <button type="button" id="xyz-submit" name="xyz-submit">Spawn</button>
+            <p id="errMessage"></p>
+        </div>
+        <button id="removeAll" type="button" name="removeAll">Despawn All</button>
+    <div id="uiRect">
+</body>
+</html>
