@@ -293,8 +293,60 @@ function main(){
         sphereAcc = [];
     }
 
+    function distanceBetween(arr1, arr2){
+        return(Math.sqrt(Math.pow(arr1[0] - arr2[0], 2.0) + Math.pow(arr1[1] - arr2[1], 2.0) + Math.pow(arr1[2] - arr2[2], 2.0)));
+    }
+
     function updatePosition(deltaTime){
         for(let i=0; i<spherePos.length; i++){
+            let xColliding = false;
+            let yColliding = false;
+            let zColliding = false;
+            let possibleVel = [
+                sphereVel[i][0] + sphereAcc[i][0] * deltaTime,
+                sphereVel[i][1] + sphereAcc[i][1] * deltaTime,
+                sphereVel[i][2] + sphereAcc[i][2] * deltaTime,
+            ];
+            let possiblePos = [
+                +spherePos[i][0] + sphereVel[i][0] * deltaTime,
+                +spherePos[i][1] + sphereVel[i][1] * deltaTime,
+                +spherePos[i][2] + sphereVel[i][2] * deltaTime,
+            ];
+            for(let j=0;j<cubePos.length;j++){
+                if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) xColliding = true;
+                if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) yColliding = true;
+                if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) zColliding = true;
+            }
+            for(let j=0;j<spherePos.length;j++){
+                if(i!=j){
+                    if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) xColliding = true;
+                    if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) yColliding = true;
+                    if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) zColliding = true;
+                }
+            }
+            if((spherePos[i][1] + sphereVel[i][1] * deltaTime) < 0.0) yColliding = true;
+            if(!xColliding){
+                sphereVel[i][0] = possibleVel[0];
+                spherePos[i][0] = possiblePos[0];
+            }
+            else{
+                sphereVel[i][0] = 0.0;
+            }
+            if(!yColliding){
+                sphereVel[i][1] = possibleVel[1];
+                spherePos[i][1] = possiblePos[1];
+            }
+            else{
+                sphereVel[i][1] = 0.0;
+            }
+            if(!zColliding){
+                sphereVel[i][2] = possibleVel[2];
+                spherePos[i][2] = possiblePos[2];
+            }
+            else{
+                sphereVel[i][2] = 0.0;
+            }
+            /*
             sphereVel[i] = [
                 sphereVel[i][0] + sphereAcc[i][0] * deltaTime,
                 sphereVel[i][1] + sphereAcc[i][1] * deltaTime,
@@ -304,7 +356,7 @@ function main(){
                 +spherePos[i][0] + sphereVel[i][0] * deltaTime,
                 +spherePos[i][1] + sphereVel[i][1] * deltaTime,
                 +spherePos[i][2] + sphereVel[i][2] * deltaTime,
-            ];
+            ];*/
         }
         console.log(spherePos);
     }
