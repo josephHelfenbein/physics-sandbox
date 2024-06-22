@@ -30,6 +30,8 @@ function main(){
     let cameraRot = [0,0];
     let cubePos = [[0,-100,0]];
     let spherePos = [];
+    let sphereVel = [];
+    let sphereAcc = [];
 
     var mousedownID=-1;
     function mousedown(event){
@@ -246,6 +248,7 @@ function main(){
     document.getElementById('xyz-submit').onclick = function() {spawnObject()};
     document.getElementById('removeAll').onclick = function() {despawnAll()};
 
+    let g = 9.8
     function spawnObject(){
         let objType = document.getElementById('object-choice').value;
         let x = document.getElementById('x-input').value;
@@ -279,13 +282,32 @@ function main(){
         }
         else if(objType == "sphere" && spawning){
             spherePos.push([x, y, z]);
+            sphereVel.push([0, 0, 0]);
+            sphereAcc.push([0, -g, 0]);
         }
     }    
     function despawnAll(){
         cubePos = [[0,-100,0]];
         spherePos = [];
+        sphereVel = [];
+        sphereAcc = [];
     }
 
+    function updatePosition(deltaTime){
+        for(let i=0; i<spherePos.length; i++){
+            sphereVel[i] = [
+                sphereVel[i][0] + sphereAcc[i][0] * deltaTime,
+                sphereVel[i][1] + sphereAcc[i][1] * deltaTime,
+                sphereVel[i][2] + sphereAcc[i][2] * deltaTime,
+            ];
+            spherePos[i] = [
+                +spherePos[i][0] + sphereVel[i][0] * deltaTime,
+                +spherePos[i][1] + sphereVel[i][1] * deltaTime,
+                +spherePos[i][2] + sphereVel[i][2] * deltaTime,
+            ];
+        }
+        console.log(spherePos);
+    }
 
     const buffers = initBuffers(gl, 0);
     const planeBuffers = initBuffers(gl, 1);
@@ -295,6 +317,7 @@ function main(){
 
     
     // Draw the scene repeatedly
+
     function render(now) {
         now *= 0.001; // convert to seconds
         deltaTime = now - then;
@@ -307,6 +330,7 @@ function main(){
             -cameraLoc[0]*Math.cos(newCamRot[0])*Math.sin(newCamRot[1]) + cameraLoc[1]*Math.sin(newCamRot[0]) + cameraLoc[2]*Math.cos(newCamRot[0])*Math.cos(newCamRot[1])
         ];
         updateCamPos(newCamLoc);
+        updatePosition(deltaTime);
 
         drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, spherePos);
 
