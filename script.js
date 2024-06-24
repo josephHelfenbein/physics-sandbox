@@ -292,11 +292,20 @@ function main(){
         sphereVel = [];
         sphereAcc = [];
     }
-
-    function distanceBetween(arr1, arr2){
-        return(Math.sqrt(Math.pow(arr1[0] - arr2[0], 2.0) + Math.pow(arr1[1] - arr2[1], 2.0) + Math.pow(arr1[2] - arr2[2], 2.0)));
+    function getDistance(arr1, arr2){
+        return Math.sqrt(Math.pow(arr1[0] - arr2[0], 2.0) + Math.pow(arr1[1] - arr2[1], 2.0) + Math.pow(arr1[2] - arr2[2], 2.0));
     }
-
+    function collidingSpheres(arr1, arr2){
+        return getDistance(arr1, arr2) < 2.0;
+    }
+    function collidingSphereCube(arrS, arrC){
+        let collisionPoint = [
+            arrS[0] - arrC[0],
+            arrS[1] - arrC[1],
+            arrS[2] - arrC[2],
+        ];
+        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0) && (Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0) <= 4.0);
+    }
     function updatePosition(deltaTime){
         for(let i=0; i<spherePos.length; i++){
             let xColliding = false;
@@ -312,16 +321,21 @@ function main(){
                 +spherePos[i][1] + sphereVel[i][1] * deltaTime,
                 +spherePos[i][2] + sphereVel[i][2] * deltaTime,
             ];
+            let prevPos = [
+                +spherePos[i][0] - sphereVel[i][0] * deltaTime,
+                +spherePos[i][1] - sphereVel[i][1] * deltaTime,
+                +spherePos[i][2] - sphereVel[i][2] * deltaTime,
+            ];
             for(let j=0;j<cubePos.length;j++){
-                if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) xColliding = true;
-                if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) yColliding = true;
-                if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && distanceBetween(possiblePos, cubePos[j]) < 2.0) zColliding = true;
+                if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[0] - cubePos[j][0]) > 1.4) xColliding = true;
+                if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[1] - cubePos[j][1]) > 1.4) yColliding = true;
+                if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[2] - cubePos[j][2]) > 1.4) zColliding = true;
             }
             for(let j=0;j<spherePos.length;j++){
                 if(i!=j){
-                    if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) xColliding = true;
-                    if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) yColliding = true;
-                    if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && distanceBetween(possiblePos, spherePos[j]) < 2.0) zColliding = true;
+                    if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[0] - spherePos[j][0]) >= 1) xColliding = true;
+                    if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[1] - spherePos[j][1]) >= 1) yColliding = true;
+                    if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[2] - spherePos[j][2]) >= 1) zColliding = true;
                 }
             }
             if((spherePos[i][1] + sphereVel[i][1] * deltaTime) < 0.0) yColliding = true;
