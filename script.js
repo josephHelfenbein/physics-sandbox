@@ -175,8 +175,7 @@ function main(){
             highp vec3 normal = normalize(v_Normal);
             highp vec3 u_LightDir = normalize(vec3(2, 4, 3));
             highp vec3 u_LightCol = vec3(1,1,1); 
-            highp float diffuse = max(dot(normal, u_LightDir), 0.015);
-
+            
 
             vec3 rayOrigin = vec3(v_Position.xyz) + epsilon * normalize(u_LightDir);
             highp float shadow = 1.0;
@@ -200,15 +199,15 @@ function main(){
                 }
             }
 
-
+            highp float diffuse = max(shadow * dot(normal, u_LightDir), 0.015);
 
             vec3 viewDir = normalize(uCameraPosition - rayOrigin);
             vec3 halfwayDir = normalize(u_LightDir + viewDir);
             float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-            vec3 specular = spec * 0.2 * u_LightCol;
+            vec3 specular = spec * 0.1 * u_LightCol;
 
             float gamma = 2.2;
-            FragColor = vec4(pow(specular * shadow + shadow * vColor.rgb*u_LightCol*vec3(diffuse,diffuse,diffuse), vec3(1.0 / gamma)),1.0);
+            FragColor = vec4(pow(specular + vColor.rgb*u_LightCol*vec3(diffuse,diffuse,diffuse), vec3(1.0 / gamma)),1.0);
         }
     `;
 
@@ -254,6 +253,9 @@ function main(){
         let x = document.getElementById('x-input').value;
         let y = document.getElementById('y-input').value;
         let z = document.getElementById('z-input').value;
+        let vx = document.getElementById('x-vinput').value;
+        let vy = document.getElementById('y-vinput').value;
+        let vz = document.getElementById('z-vinput').value;
         let errMessage = document.getElementById('errMessage');
         errMessage.textContent = "";
         if(x < -9){x = -9; document.getElementById('x-input').value = -9;}
@@ -282,7 +284,7 @@ function main(){
         }
         else if(objType == "sphere" && spawning){
             spherePos.push([x, y, z]);
-            sphereVel.push([0, 0, 0]);
+            sphereVel.push([+vx, +vy, +vz]);
             sphereAcc.push([0, -g, 0]);
         }
     }    
@@ -304,13 +306,23 @@ function main(){
             arrS[1] - arrC[1],
             arrS[2] - arrC[2],
         ];
-        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0) && (Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0) <= 4.0);
+        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0) && (Math.sqrt(Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0)) <= 2.414);
     }
+    function calculateNormal(arr1, arr2){
+        let dist = getDistance(arr1, arr2);
+        return [
+            (arr1[0] - arr2[0]) / dist,
+            (arr1[1] - arr2[1]) / dist,
+            (arr1[2] - arr2[2]) / dist,
+        ];
+    }
+    const frictionalCoeff = 3.0;
     function updatePosition(deltaTime){
         for(let i=0; i<spherePos.length; i++){
             let xColliding = false;
             let yColliding = false;
             let zColliding = false;
+            let frictionApplied = false;
             let possibleVel = [
                 sphereVel[i][0] + sphereAcc[i][0] * deltaTime,
                 sphereVel[i][1] + sphereAcc[i][1] * deltaTime,
@@ -326,53 +338,103 @@ function main(){
                 +spherePos[i][1] - sphereVel[i][1] * deltaTime,
                 +spherePos[i][2] - sphereVel[i][2] * deltaTime,
             ];
+            let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
+            let normalVector = [];
+            // sphere-cube collisions
             for(let j=0;j<cubePos.length;j++){
-                if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[0] - cubePos[j][0]) > 1.4) xColliding = true;
-                if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[1] - cubePos[j][1]) > 1.4) yColliding = true;
-                if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[2] - cubePos[j][2]) > 1.4) zColliding = true;
-            }
-            for(let j=0;j<spherePos.length;j++){
-                if(i!=j){
-                    if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[0] - spherePos[j][0]) >= 1) xColliding = true;
-                    if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[1] - spherePos[j][1]) >= 1) yColliding = true;
-                    if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[2] - spherePos[j][2]) >= 1) zColliding = true;
+                if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[0] - cubePos[j][0]) > 1.4) {
+                    xColliding = true; 
+                }
+                if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[1] - cubePos[j][1]) > 1.4) {
+                    yColliding = true;
+                    frictionApplied = true;
+                }
+                if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && collidingSphereCube(possiblePos, cubePos[j]) && Math.abs(prevPos[2] - cubePos[j][2]) > 1.4) {
+                    zColliding = true;
+                }
+                if((xColliding||yColliding||zColliding) && collidingSphereCube(possiblePos, cubePos[j])){
+                    normalVector = calculateNormal(possiblePos, cubePos[j]);
+                    sphereVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
+                    sphereVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
+                    sphereVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
                 }
             }
-            if((spherePos[i][1] + sphereVel[i][1] * deltaTime) < 0.0) yColliding = true;
+            // sphere-sphere collisions
+            for(let j=0;j<spherePos.length;j++){
+                if(i!=j){
+                    if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[0] - spherePos[j][0]) >= 1) {
+                        xColliding = true;
+                    }
+                    if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[1] - spherePos[j][1]) >= 1) {
+                        yColliding = true;
+                    }
+                    if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && collidingSpheres(possiblePos, spherePos[j]) && Math.abs(prevPos[2] - spherePos[j][2]) >= 1) {
+                        zColliding = true;
+                    }
+                    if((xColliding||yColliding||zColliding) && collidingSpheres(possiblePos, spherePos[j])){
+                        normalVector = calculateNormal(possiblePos, spherePos[j]);
+                        let otherSphereVel = Math.sqrt(Math.pow(sphereVel[j][0], 2.0) + Math.pow(sphereVel[j][1], 2.0) + Math.pow(sphereVel[j][2], 2.0));
+                        sphereVel[j][0] = (sphereVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherSphereVel) / 2.0;
+                        sphereVel[i][0] = (possibleVel[0] + normalVector[0] * otherSphereVel + normalVector[0] * possibleSpeed) / 2.0;
+                        sphereVel[j][1] = (sphereVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherSphereVel) / 2.0;
+                        sphereVel[i][1] = (possibleVel[1] + normalVector[1] * otherSphereVel + normalVector[1] * possibleSpeed) / 2.0;
+                        sphereVel[j][2] = (sphereVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherSphereVel) / 2.0;
+                        sphereVel[i][2] = (possibleVel[2] + normalVector[2] * otherSphereVel + normalVector[2] * possibleSpeed) / 2.0;
+                    }
+                }
+            }
+            // sphere-wall collisions
+            if(possiblePos[0] >= 9){
+                xColliding = true;
+                normalVector = calculateNormal(possiblePos, [10, possiblePos[1], possiblePos[2]]);
+                sphereVel[i][0] = normalVector[0] * Math.abs(sphereVel[i][0]) / 2.0;
+            }
+            else if(possiblePos[0] <= -9){
+                xColliding = true;
+                normalVector = calculateNormal(possiblePos, [-10, possiblePos[1], possiblePos[2]]);
+                sphereVel[i][0] = normalVector[0] * Math.abs(sphereVel[i][0]) / 2.0;
+            }
+            if(possiblePos[2] >= 9){
+                zColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], 10]);
+                sphereVel[i][2] = normalVector[2] * Math.abs(sphereVel[i][2]) / 2.0;
+            }
+            else if(possiblePos[2] <= -9){
+                zColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], -10]);
+                sphereVel[i][2] = normalVector[2] * Math.abs(sphereVel[i][2]) / 2.0;
+            }
+            // sphere-ground and sphere-ceiling collision
+            if(possiblePos[1] >= 45.0) {
+                yColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0],46,possiblePos[2]]);
+                sphereVel[i][1] = normalVector[1] * Math.abs(sphereVel[i][1]) / 2.0;
+            }
+            else if(possiblePos[1] <= 0.0) {
+                yColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0],-2,possiblePos[2]]);
+                sphereVel[i][1] = normalVector[1] * Math.abs(sphereVel[i][1]) / 2.0;
+                possibleVel[1] = normalVector[1] * Math.abs(sphereVel[i][1]) / 2.0;
+                frictionApplied = true;
+            }
+            // updating unblocked position
             if(!xColliding){
                 sphereVel[i][0] = possibleVel[0];
+                if(frictionApplied)
+                    sphereVel[i][0] *= 1.0 - frictionalCoeff * deltaTime;
                 spherePos[i][0] = possiblePos[0];
-            }
-            else{
-                sphereVel[i][0] = 0.0;
             }
             if(!yColliding){
                 sphereVel[i][1] = possibleVel[1];
                 spherePos[i][1] = possiblePos[1];
             }
-            else{
-                sphereVel[i][1] = 0.0;
-            }
             if(!zColliding){
                 sphereVel[i][2] = possibleVel[2];
+                if(frictionApplied)
+                    sphereVel[i][2] *= 1.0 - frictionalCoeff * deltaTime;
                 spherePos[i][2] = possiblePos[2];
             }
-            else{
-                sphereVel[i][2] = 0.0;
-            }
-            /*
-            sphereVel[i] = [
-                sphereVel[i][0] + sphereAcc[i][0] * deltaTime,
-                sphereVel[i][1] + sphereAcc[i][1] * deltaTime,
-                sphereVel[i][2] + sphereAcc[i][2] * deltaTime,
-            ];
-            spherePos[i] = [
-                +spherePos[i][0] + sphereVel[i][0] * deltaTime,
-                +spherePos[i][1] + sphereVel[i][1] * deltaTime,
-                +spherePos[i][2] + sphereVel[i][2] * deltaTime,
-            ];*/
         }
-        console.log(spherePos);
     }
 
     const buffers = initBuffers(gl, 0);
@@ -397,10 +459,11 @@ function main(){
         ];
         updateCamPos(newCamLoc);
         updatePosition(deltaTime);
+        
 
         drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, spherePos);
 
-
+        
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
