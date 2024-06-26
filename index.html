@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <title>Physics Sandbox</title>
 <link rel="stylesheet" type="text/css" href="style.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,1,0" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,1,0" />
 <script
       src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"
       integrity="sha512-zhHQR0/H5SEBL3Wn6yYSaTTZej12z0hVZKOv3TwCUXT1z5qeqGcXJLLrbERYRScEDDpYIJhPC1fk31gqR783iQ=="
@@ -32,6 +34,9 @@
             <input type="number" class="xyz-input" step="0.01" value="0" id="y-vinput" name="y-vinput"></input>
             <label for="z-vinput" class="xyz-label">vz:</label>
             <input type="number" class="xyz-input" step="0.01" value="0" id="z-vinput" name="z-vinput"></input>
+            <button type="button" id="pausebutton" name="pausebutton"><span id="pauseicon" class="material-symbols-outlined">
+                pause
+                </span></button>
             <p id="errMessage"></p>
         </div>
         <button id="removeAll" type="button" name="removeAll">Despawn All</button>

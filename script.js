@@ -106,8 +106,6 @@ function main(){
 
         void main(void) {
         gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        highp vec3 surfaceWorldPosition = (u_world * aVertexPosition).xyz;
-        highp vec4 transformedNormal = uNormalMatrix * vec4(aVertexNormal, 1.0);
         v_Normal = vec3(uModelViewMatrix * vec4(aVertexNormal, 0.0));
         v_Position = vec3(uModelViewMatrix * aVertexPosition);
         vColor = aVertexColor;
@@ -201,10 +199,10 @@ function main(){
 
             highp float diffuse = max(shadow * dot(normal, u_LightDir), 0.015);
 
-            vec3 viewDir = normalize(uCameraPosition - rayOrigin);
+            vec3 viewDir = normalize(uCameraPosition - v_Position.xyz);
             vec3 halfwayDir = normalize(u_LightDir + viewDir);
             float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-            vec3 specular = spec * 0.1 * u_LightCol;
+            vec3 specular = shadow * spec * 0.1 * u_LightCol;
 
             float gamma = 2.2;
             FragColor = vec4(pow(specular + vColor.rgb*u_LightCol*vec3(diffuse,diffuse,diffuse), vec3(1.0 / gamma)),1.0);
@@ -220,7 +218,6 @@ function main(){
     function updateCamPos(camPos){
         gl.useProgram(shaderProgram);
         gl.uniform3fv(gl.getUniformLocation(shaderProgram, 'uCameraPosition'), camPos);
-        
     }
     updateCamPos(cameraLoc);
     const programInfo = {
@@ -246,6 +243,7 @@ function main(){
     
     document.getElementById('xyz-submit').onclick = function() {spawnObject()};
     document.getElementById('removeAll').onclick = function() {despawnAll()};
+    document.getElementById('pausebutton').onclick = function() {pausePlayTime()};
 
     let g = 9.8
     function spawnObject(){
@@ -293,6 +291,13 @@ function main(){
         spherePos = [];
         sphereVel = [];
         sphereAcc = [];
+    }
+    let paused = false;
+    function pausePlayTime(){
+        paused = !paused;
+        let icon = document.getElementById('pauseicon');
+        if(icon.innerText == 'play_arrow') icon.innerText = 'pause';
+        else icon.innerText = 'play_arrow';
     }
     function getDistance(arr1, arr2){
         return Math.sqrt(Math.pow(arr1[0] - arr2[0], 2.0) + Math.pow(arr1[1] - arr2[1], 2.0) + Math.pow(arr1[2] - arr2[2], 2.0));
@@ -453,12 +458,13 @@ function main(){
        
         let newCamRot = [cameraRot[0] * Math.PI * 0.00555555556,cameraRot[1] * Math.PI * 0.00555555556];
         let newCamLoc = [
-            cameraLoc[0]*Math.cos(newCamRot[1]) + cameraLoc[2] * Math.sin(newCamRot[1]),
-            cameraLoc[0]*Math.sin(newCamRot[0])*Math.sin(newCamRot[1]) + cameraLoc[1]*Math.cos(newCamRot[0])-cameraLoc[2]*Math.sin(newCamRot[0])*Math.cos(newCamRot[1]),
+            -(cameraLoc[0]*Math.cos(newCamRot[1]) + cameraLoc[2] * Math.sin(newCamRot[1])),
+            -(cameraLoc[0]*Math.sin(newCamRot[0])*Math.sin(newCamRot[1]) + cameraLoc[1]*Math.cos(newCamRot[0])-cameraLoc[2]*Math.sin(newCamRot[0])*Math.cos(newCamRot[1])),
             -cameraLoc[0]*Math.cos(newCamRot[0])*Math.sin(newCamRot[1]) + cameraLoc[1]*Math.sin(newCamRot[0]) + cameraLoc[2]*Math.cos(newCamRot[0])*Math.cos(newCamRot[1])
         ];
         updateCamPos(newCamLoc);
-        updatePosition(deltaTime);
+        if(!paused)
+            updatePosition(deltaTime);
         
 
         drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, spherePos);

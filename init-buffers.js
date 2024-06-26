@@ -252,47 +252,15 @@ function initNormalBuffer(gl, object, verts, indices) {
     else if(object == 2){
         const normalCount = new Uint32Array(verts.length/3);
         const normals = new Float32Array(verts.length);
-        for(let i=0; i<indices.length; i+=3){
-            const v0 = [verts[indices[i]*3], verts[indices[i] * 3 + 1], verts[indices[i] * 3 + 2]];
-            const v1 = [verts[indices[i+1]*3], verts[indices[i+1] * 3 + 1], verts[indices[i+1] * 3 + 2]];
-            const v2 = [verts[indices[i+2]*3], verts[indices[i+2] * 3 + 1], verts[indices[i+2] * 3 + 2]];
-            const edge1 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
-            const edge2 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
-            const normal = [
-                edge1[1] * edge2[2] - edge1[2] * edge2[1],
-                edge1[2] * edge2[0] - edge1[0] * edge2[2],
-                edge1[0] * edge2[1] - edge1[1] * edge2[0],
-            ]
-            const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-            normal[0] /= length; normal[1] /= length; normal[2] /= length;
-            normals[indices[i] * 3 + 0] = normal[0];
-            normals[indices[i] * 3 + 1] = normal[1];
-            normals[indices[i] * 3 + 2] = normal[2];
-            normalCount[indices[i]]++;
-
-            normals[indices[i+1] * 3 + 0] = normal[0];
-            normals[indices[i+1] * 3 + 1] = normal[1];
-            normals[indices[i+1] * 3 + 2] = normal[2];
-            normalCount[indices[i + 1]]++;
-
-            normals[indices[i+2] * 3 + 0] = normal[0];
-            normals[indices[i+2] * 3 + 1] = normal[1];
-            normals[indices[i+2] * 3 + 2] = normal[2];
-            normalCount[indices[i + 2]]++;
-        }
-        
-        for(let i=0; i<verts.length / 3; i++){
-            normals[i * 3] /= normalCount[i];
-            normals[i * 3 + 1] /= normalCount[i];
-            normals[i * 3 + 2] /= normalCount[i];
-            const nx = normals[i * 3];
-            const ny = normals[i * 3 + 1];
-            const nz = normals[i * 3 + 2];
-            const length = Math.sqrt(nx * nx + ny * ny + nz * nz);
-            normals[i * 3] /= length;
-            normals[i * 3 + 1] /= length;
-            normals[i * 3 + 2] /= length;
-        }
+        for(let i=0; i<verts.length; i+=3){
+            const x = verts[i];
+            const y = verts[i+1];
+            const z = verts[i+2];
+            const length = Math.sqrt(x*x + y*y + z*z);
+            normals[i] = x / length;
+            normals[i+1] = y / length;
+            normals[i+2] = z / length;
+        } 
         gl.bufferData(
             gl.ARRAY_BUFFER,
             normals,
@@ -310,16 +278,16 @@ function initNormalBuffer(gl, object, verts, indices) {
 }
 function subdivideIcosphere(gl, verts, indices, iterations){
     const positions = new Float32Array(verts);
-    const getMidpoint = (v1, v2) => {
-        return [
-            (v1[0] + v2[0]) / 2,
-            (v1[1] + v2[1]) / 2,
-            (v1[2] + v2[2]) / 2
-        ];
-    };
     const normalize = (v) => {
         const length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
         return [v[0] / length, v[1] / length, v[2] / length]; 
+    };
+    const getMidpoint = (v1, v2) => {
+        return normalize([
+            (v1[0] + v2[0]) / 2,
+            (v1[1] + v2[1]) / 2,
+            (v1[2] + v2[2]) / 2
+        ]);
     };
     let vertices = [...positions];
     let indexMap = new Map();
@@ -337,9 +305,9 @@ function subdivideIcosphere(gl, verts, indices, iterations){
             const v0 = [vertices[indices[i] * 3 + 0], vertices[indices[i] * 3 + 1], vertices[indices[i] * 3 + 2]];
             const v1 = [vertices[indices[i + 1] * 3 + 0], vertices[indices[i + 1] * 3 + 1], vertices[indices[i + 1] * 3 + 2]];
             const v2 = [vertices[indices[i + 2] * 3 + 0], vertices[indices[i + 2] * 3 + 1], vertices[indices[i + 2] * 3 + 2]];
-            const m0 = normalize(getMidpoint(v0, v1));
-            const m1 = normalize(getMidpoint(v1, v2));
-            const m2 = normalize(getMidpoint(v2, v0));
+            const m0 = getMidpoint(v0, v1);
+            const m1 = getMidpoint(v1, v2);
+            const m2 = getMidpoint(v2, v0);
             const i0 = getVertexIndex(v0);
             const i1 = getVertexIndex(v1);
             const i2 = getVertexIndex(v2);
@@ -348,8 +316,8 @@ function subdivideIcosphere(gl, verts, indices, iterations){
             const im2 = getVertexIndex(m2);
 
             newIndices.push(i0, im0, im2);
-            newIndices.push(im0, i1, im1);
-            newIndices.push(im1, i2, im2);
+            newIndices.push(i1, im1, im0);
+            newIndices.push(i2, im2, im1);
             newIndices.push(im0, im1, im2);
         }
         indices = newIndices;

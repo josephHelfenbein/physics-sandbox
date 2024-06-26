@@ -71,6 +71,23 @@ body{
 #xyz-submit:active{
     background-color: #7b919e;
 }
+#pausebutton{
+    background-color: #0f0f0f;
+    color: #ffffff;
+    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    margin-left: 10%;
+    border-style: none;
+    font-size:17px;
+    transition-duration: 0.3s;
+}
+#pausebutton:hover{
+    background-color: #253746;
+}
+#pausebutton:active{
+    background-color: #7b919e;
+}
 #errMessage{
     color:#ff5050;
 }
