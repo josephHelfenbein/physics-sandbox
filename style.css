@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
 body{
     background-color: #0D0E15;
-    font-size:16px;
-    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size:20px;
+    font-family: "Urbanist", Verdana, Geneva, Tahoma, sans-serif;
+    font-optical-sizing: auto;
 }
 #webglCanvas{
     border:1px solid black;
@@ -11,11 +13,11 @@ body{
     width: 40%;
 }
 #spawnRect{
-    height:180px;
+    height:190px;
     width:500px;
     background-color: #4B2222;
     margin-top:30px;
-    margin-bottom:60px;
+    margin-bottom:30px;
     border-radius:28px;
     margin-right:10px;
     padding:30px;
@@ -90,6 +92,7 @@ body{
 }
 #errMessage{
     color:#ff5050;
+    font-size:16px;
 }
 #removeAll{
     background-color: #661212;
@@ -113,6 +116,38 @@ body{
     flex-direction: row;
     justify-content: center;
     align-items: center;
+}
+#templatesRect{
+    height:100px;
+    width:550px;
+    background-color: #22234b;
+    margin-bottom:60px;
+    border-radius:28px;
+    padding:30px;
+    margin-left:auto;
+    margin-right:auto;
+}
+#templatesText{
+    margin-top:0px;
+    color:#eaeaea;
+    margin-left:10px;
+}
+.templateButton{
+    background-color: #0f0f0f;
+    color: #ffffff;
+    border-radius: 8px;
+    width: 150px;
+    height: 48px;
+    margin: 10px;
+    border-style: none;
+    font-size:17px;
+    transition-duration: 0.3s;
+}
+.templateButton:hover{
+    background-color: #253746;
+}
+.templateButton:active{
+    background-color: #7b919e;
 }
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,

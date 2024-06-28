@@ -166,7 +166,7 @@ function main(){
             float b = 2.0 * dot(oc, rayVector);
             float c = dot(oc, oc) - sphereRad * sphereRad;
             float discriminant = b * b - 4.0 * a * c;
-            return (discriminant > 0.0 && c > 0.0 && b < 0.0);
+            return (discriminant > 0.0 && b < 0.0);
         }
 
         void main(void) {
@@ -183,7 +183,7 @@ function main(){
                 vec4 v1 = getVertex(i*3+1);
                 vec4 v2 = getVertex(i*3+2);
                 if(rayIntersectsTriangle(rayOrigin, u_LightDir, v0.xyz, v1.xyz, v2.xyz)){
-                    shadow = 0.05;break;
+                    shadow = 0.0;break;
                 }
                 
             }
@@ -192,7 +192,7 @@ function main(){
                     int sphereIndex = uTriangleCount * 2 + 9 + uCubeCount * 3 + j;
                     vec3 spherePos = getVertex(sphereIndex).xyz;
                     if(rayIntersectsSphere(rayOrigin, u_LightDir, spherePos, 1.0)){
-                        shadow = 0.05;break;
+                        shadow = 0.0;break;
                     }
                 }
             }
@@ -244,6 +244,10 @@ function main(){
     document.getElementById('xyz-submit').onclick = function() {spawnObject()};
     document.getElementById('removeAll').onclick = function() {despawnAll()};
     document.getElementById('pausebutton').onclick = function() {pausePlayTime()};
+    document.getElementById('template1').onclick = function() {spawnTemplate(1)};
+    document.getElementById('template2').onclick = function() {spawnTemplate(2)};
+    document.getElementById('template3').onclick = function() {spawnTemplate(3)};
+
 
     let g = 9.8
     function spawnObject(){
@@ -285,6 +289,7 @@ function main(){
             sphereVel.push([+vx, +vy, +vz]);
             sphereAcc.push([0, -g, 0]);
         }
+        return spawning;
     }    
     function despawnAll(){
         cubePos = [[0,-100,0]];
@@ -298,6 +303,82 @@ function main(){
         let icon = document.getElementById('pauseicon');
         if(icon.innerText == 'play_arrow') icon.innerText = 'pause';
         else icon.innerText = 'play_arrow';
+    }
+    const delay = ms => new Promise(res => setTimeout(res, ms));
+    const spawnTemplate = async (num) => {
+        let x = document.getElementById('x-input');
+        let y = document.getElementById('y-input');
+        let z = document.getElementById('z-input');
+        let vx = document.getElementById('x-vinput');
+        let vy = document.getElementById('y-vinput');
+        let vz = document.getElementById('z-vinput');
+        let objType = document.getElementById('object-choice');
+        switch(num){
+            case 1:
+                x.value = -9;
+                y.value = 20;
+                z.value = 0;
+                vx.value = Math.random() + 10;
+                vy.value = (6 * Math.random()) - 16;
+                vz.value = (6 * Math.random()) - 3;
+                objType.value = "sphere";
+                if(spawnObject())
+                for(let i=0; i<100; i++){
+                    x.value = -9;
+                    y.value = 20;
+                    z.value = 0;
+                    vx.value = Math.random() + 10;
+                    vy.value = (6 * Math.random()) - 16;
+                    vz.value = (6 * Math.random()) - 3;
+                    objType.value = "sphere";
+                    let spawned = false;
+                    while(!spawned) {
+                        spawned = spawnObject();
+                        await delay(50);
+                    }
+                }
+                break;
+            case 2:
+                for(let i=-1;i<2;i++){
+                    for(let j=-1;j<2;j++){
+                        for(let k=3;k<6;k++){
+                            x.value = i * 2;
+                            y.value = k * 2;
+                            z.value = j * 2;
+                            vx.value = i * 10.0 * (Math.random() + 1);
+                            vy.value = k * 10.0 * (Math.random() + 1);
+                            vz.value = j * 10.0 * (Math.random() + 1);
+                            objType.value = "sphere";
+                            spawnObject();
+                        }
+                    }
+                }
+                break;
+            case 3:
+                x.value = 0;
+                y.value = 3;
+                z.value = 0;
+                vx.value = 8 * Math.random() - 4;
+                vy.value = 10 * Math.random() + 30;
+                vz.value = 8 * Math.random() - 4;
+                objType.value = "sphere";
+                if(spawnObject())
+                for(let i=0; i<100; i++){
+                    x.value = 0;
+                    y.value = 3;
+                    z.value = 0;
+                    vx.value = 8 * Math.random() - 4;
+                    vy.value = 10 * Math.random() + 30;
+                    vz.value = 8 * Math.random() - 4;
+                    objType.value = "sphere";
+                    let spawned = false;
+                    while(!spawned) {
+                        spawned = spawnObject();
+                        await delay(150);
+                    }
+                }
+                break;
+        }
     }
     function getDistance(arr1, arr2){
         return Math.sqrt(Math.pow(arr1[0] - arr2[0], 2.0) + Math.pow(arr1[1] - arr2[1], 2.0) + Math.pow(arr1[2] - arr2[2], 2.0));
