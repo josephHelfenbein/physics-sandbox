@@ -29,9 +29,18 @@ function main(){
     let cameraLoc = [0.0, 0.0, 30.0];
     let cameraRot = [0,0];
     let cubePos = [[0,-100,0]];
+    let cubeVel = [[0, 0, 0]];
+    let cubeAcc = [[0, 0, 0]];
+    let cubeAngVel = [0];
+    let cubeAngAcc = [0];
+    let cubeAng = [0];
+    let cubeAngAxis = [[0, 0, 0]];
+    let cubeStatic = [1];
+
     let spherePos = [];
     let sphereVel = [];
     let sphereAcc = [];
+    let sphereStatic = [];
 
     var mousedownID=-1;
     function mousedown(event){
@@ -130,7 +139,7 @@ function main(){
         uniform int uCubeCount;
 
 
-        const float epsilon = 0.00001;
+        const float epsilon = 0.01;
         
         vec4 getVertex(int index){
             float f_index = float(index);
@@ -183,16 +192,17 @@ function main(){
                 vec4 v1 = getVertex(i*3+1);
                 vec4 v2 = getVertex(i*3+2);
                 if(rayIntersectsTriangle(rayOrigin, u_LightDir, v0.xyz, v1.xyz, v2.xyz)){
-                    shadow = 0.0;break;
+                    shadow = 0.0;
+                    break;
                 }
-                
             }
-            if(shadow!=0.05){
+            if(shadow!=0.0){
                 for(int j=0; j<uSphereCount; j++){
                     int sphereIndex = uTriangleCount * 2 + 9 + uCubeCount * 3 + j;
                     vec3 spherePos = getVertex(sphereIndex).xyz;
                     if(rayIntersectsSphere(rayOrigin, u_LightDir, spherePos, 1.0)){
-                        shadow = 0.0;break;
+                        shadow = 0.0;
+                        break;
                     }
                 }
             }
@@ -259,6 +269,7 @@ function main(){
         let vy = document.getElementById('y-vinput').value;
         let vz = document.getElementById('z-vinput').value;
         let errMessage = document.getElementById('errMessage');
+        let staticCheck = document.getElementById('dynamicCheck');
         errMessage.textContent = "";
         if(x < -9){x = -9; document.getElementById('x-input').value = -9;}
         if(x > 9){x = 9; document.getElementById('x-input').value = 9;}
@@ -283,16 +294,37 @@ function main(){
         }
         if(objType == "cube" && spawning){
             cubePos.push([x, y, z]);
+            cubeVel.push([+vx, +vy, +vz]);
+            cubeAcc.push([0, -g, 0]);
+            cubeAngVel.push(0);
+            cubeAng.push(0);
+            cubeAngAcc.push(0);
+            cubeAngAxis.push([0, 0, 0]);
+            if(staticCheck.checked == true)
+                cubeStatic.push(1);
+            else
+                cubeStatic.push(0);
         }
         else if(objType == "sphere" && spawning){
             spherePos.push([x, y, z]);
             sphereVel.push([+vx, +vy, +vz]);
             sphereAcc.push([0, -g, 0]);
+            if(staticCheck.checked == true)
+                sphereStatic.push(1);
+            else
+                sphereStatic.push(0);
         }
         return spawning;
     }    
     function despawnAll(){
         cubePos = [[0,-100,0]];
+        cubeVel = [[0, 0, 0]];
+        cubeAngVel = [0];
+        cubeAngAcc = [0];
+        cubeAng = [0];
+        cubeAngAxis = [[0, 0, 0]];
+        cubeStatic = [1];
+        sphereStatic = [];
         spherePos = [];
         sphereVel = [];
         sphereAcc = [];
@@ -313,6 +345,7 @@ function main(){
         let vy = document.getElementById('y-vinput');
         let vz = document.getElementById('z-vinput');
         let objType = document.getElementById('object-choice');
+        let staticCheck = document.getElementById('dynamicCheck');
         switch(num){
             case 1:
                 x.value = -9;
@@ -322,6 +355,7 @@ function main(){
                 vy.value = (6 * Math.random()) - 16;
                 vz.value = (6 * Math.random()) - 3;
                 objType.value = "sphere";
+                staticCheck.checked = false;
                 if(spawnObject())
                 for(let i=0; i<100; i++){
                     x.value = -9;
@@ -331,6 +365,7 @@ function main(){
                     vy.value = (6 * Math.random()) - 16;
                     vz.value = (6 * Math.random()) - 3;
                     objType.value = "sphere";
+                    staticCheck.checked = false;
                     let spawned = false;
                     while(!spawned) {
                         spawned = spawnObject();
@@ -345,6 +380,7 @@ function main(){
                             x.value = i * 2;
                             y.value = k * 2;
                             z.value = j * 2;
+                            staticCheck.checked = false;
                             vx.value = i * 10.0 * (Math.random() + 1);
                             vy.value = k * 10.0 * (Math.random() + 1);
                             vz.value = j * 10.0 * (Math.random() + 1);
@@ -362,11 +398,13 @@ function main(){
                 vy.value = 10 * Math.random() + 30;
                 vz.value = 8 * Math.random() - 4;
                 objType.value = "sphere";
+                staticCheck.checked = false;
                 if(spawnObject())
                 for(let i=0; i<100; i++){
                     x.value = 0;
                     y.value = 3;
                     z.value = 0;
+                    staticCheck.checked = false;
                     vx.value = 8 * Math.random() - 4;
                     vy.value = 10 * Math.random() + 30;
                     vz.value = 8 * Math.random() - 4;
@@ -394,6 +432,14 @@ function main(){
         ];
         return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0) && (Math.sqrt(Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0)) <= 2.414);
     }
+    function collidingCubes(arr1, arr2){
+        let collisionPoint = [
+            arr1[0] - arr2[0],
+            arr1[1] - arr2[1],
+            arr1[2] - arr2[2],
+        ];
+        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0);
+    }
     function calculateNormal(arr1, arr2){
         let dist = getDistance(arr1, arr2);
         return [
@@ -402,9 +448,12 @@ function main(){
             (arr1[2] - arr2[2]) / dist,
         ];
     }
-    const frictionalCoeff = 3.0;
+    const frictionalCoeffS = 1.25;
+    const frictionalCoeffC = 4.0;
     function updatePosition(deltaTime){
         for(let i=0; i<spherePos.length; i++){
+            while(sphereStatic[i] == 1) i++;
+            if(i>=spherePos.length) break;
             let xColliding = false;
             let yColliding = false;
             let zColliding = false;
@@ -440,9 +489,20 @@ function main(){
                 }
                 if((xColliding||yColliding||zColliding) && collidingSphereCube(possiblePos, cubePos[j])){
                     normalVector = calculateNormal(possiblePos, cubePos[j]);
-                    sphereVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
-                    sphereVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
-                    sphereVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
+                    if(cubeStatic[j]==0){
+                        let otherCubeVel = Math.sqrt(Math.pow(cubeVel[j][0], 2.0) + Math.pow(cubeVel[j][1], 2.0) + Math.pow(cubeVel[j][2], 2.0));
+                        cubeVel[j][0] = (cubeVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherCubeVel) / 3.0;
+                        sphereVel[i][0] = (possibleVel[0] + normalVector[0] * otherCubeVel + normalVector[0] * possibleSpeed) / 2.0;
+                        cubeVel[j][1] = (cubeVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherCubeVel) / 3.0;
+                        sphereVel[i][1] = (possibleVel[1] + normalVector[1] * otherCubeVel + normalVector[1] * possibleSpeed) / 2.0;
+                        cubeVel[j][2] = (cubeVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherCubeVel) / 3.0;
+                        sphereVel[i][2] = (possibleVel[2] + normalVector[2] * otherCubeVel + normalVector[2] * possibleSpeed) / 2.0;
+                    }
+                    else{
+                        sphereVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
+                        sphereVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
+                        sphereVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
+                    }
                 }
             }
             // sphere-sphere collisions
@@ -459,13 +519,20 @@ function main(){
                     }
                     if((xColliding||yColliding||zColliding) && collidingSpheres(possiblePos, spherePos[j])){
                         normalVector = calculateNormal(possiblePos, spherePos[j]);
-                        let otherSphereVel = Math.sqrt(Math.pow(sphereVel[j][0], 2.0) + Math.pow(sphereVel[j][1], 2.0) + Math.pow(sphereVel[j][2], 2.0));
-                        sphereVel[j][0] = (sphereVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherSphereVel) / 2.0;
-                        sphereVel[i][0] = (possibleVel[0] + normalVector[0] * otherSphereVel + normalVector[0] * possibleSpeed) / 2.0;
-                        sphereVel[j][1] = (sphereVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherSphereVel) / 2.0;
-                        sphereVel[i][1] = (possibleVel[1] + normalVector[1] * otherSphereVel + normalVector[1] * possibleSpeed) / 2.0;
-                        sphereVel[j][2] = (sphereVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherSphereVel) / 2.0;
-                        sphereVel[i][2] = (possibleVel[2] + normalVector[2] * otherSphereVel + normalVector[2] * possibleSpeed) / 2.0;
+                        if(sphereStatic[j]==0){
+                            let otherSphereVel = Math.sqrt(Math.pow(sphereVel[j][0], 2.0) + Math.pow(sphereVel[j][1], 2.0) + Math.pow(sphereVel[j][2], 2.0));
+                            sphereVel[j][0] = (sphereVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherSphereVel) / 2.0;
+                            sphereVel[i][0] = (possibleVel[0] + normalVector[0] * otherSphereVel + normalVector[0] * possibleSpeed) / 2.0;
+                            sphereVel[j][1] = (sphereVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherSphereVel) / 2.0;
+                            sphereVel[i][1] = (possibleVel[1] + normalVector[1] * otherSphereVel + normalVector[1] * possibleSpeed) / 2.0;
+                            sphereVel[j][2] = (sphereVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherSphereVel) / 2.0;
+                            sphereVel[i][2] = (possibleVel[2] + normalVector[2] * otherSphereVel + normalVector[2] * possibleSpeed) / 2.0;
+                        }
+                        else{
+                            sphereVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
+                            sphereVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
+                            sphereVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
+                        }
                     }
                 }
             }
@@ -507,7 +574,7 @@ function main(){
             if(!xColliding){
                 sphereVel[i][0] = possibleVel[0];
                 if(frictionApplied)
-                    sphereVel[i][0] *= 1.0 - frictionalCoeff * deltaTime;
+                    sphereVel[i][0] *= 1.0 - frictionalCoeffS * deltaTime;
                 spherePos[i][0] = possiblePos[0];
             }
             if(!yColliding){
@@ -517,9 +584,158 @@ function main(){
             if(!zColliding){
                 sphereVel[i][2] = possibleVel[2];
                 if(frictionApplied)
-                    sphereVel[i][2] *= 1.0 - frictionalCoeff * deltaTime;
+                    sphereVel[i][2] *= 1.0 - frictionalCoeffS * deltaTime;
                 spherePos[i][2] = possiblePos[2];
             }
+        }
+        for(let i=0; i<cubePos.length; i++){
+            while(cubeStatic[i] == 1) i++;
+            if(i>=cubePos.length) break;
+            let xColliding = false;
+            let yColliding = false;
+            let zColliding = false;
+            let frictionApplied = false;
+            let possibleVel = [
+                cubeVel[i][0] + cubeAcc[i][0] * deltaTime,
+                cubeVel[i][1] + cubeAcc[i][1] * deltaTime,
+                cubeVel[i][2] + cubeAcc[i][2] * deltaTime,
+            ];
+            let possiblePos = [
+                +cubePos[i][0] + cubeVel[i][0] * deltaTime,
+                +cubePos[i][1] + cubeVel[i][1] * deltaTime,
+                +cubePos[i][2] + cubeVel[i][2] * deltaTime,
+            ];
+            let prevPos = [
+                +cubePos[i][0] - cubeVel[i][0] * deltaTime,
+                +cubePos[i][1] - cubeVel[i][1] * deltaTime,
+                +cubePos[i][2] - cubeVel[i][2] * deltaTime,
+            ];
+            let possibleAngVec= cubeAngVel[i] + cubeAngAcc[i] * deltaTime;
+            let possibleAng = cubeAng[i] + cubeAngVel[i] * deltaTime;
+            let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
+            let normalVector = [];
+            // cube-cube collisions
+            for(let j=0;j<cubePos.length;j++){
+                if(i!=j){
+                    if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2.0 && collidingCubes(possiblePos, cubePos[j]) && Math.abs(prevPos[0] - cubePos[j][0]) > 1.4) {
+                        xColliding = true; 
+                    }
+                    if(Math.abs(possiblePos[1] - cubePos[j][1]) < 2.0 && collidingCubes(possiblePos, cubePos[j]) && Math.abs(prevPos[1] - cubePos[j][1]) > 1.4) {
+                        yColliding = true;
+                        frictionApplied = true;
+                    }
+                    if(Math.abs(possiblePos[2] - cubePos[j][2]) < 2.0 && collidingCubes(possiblePos, cubePos[j]) && Math.abs(prevPos[2] - cubePos[j][2]) > 1.4) {
+                        zColliding = true;
+                    }
+                    if((xColliding||yColliding||zColliding) && collidingCubes(possiblePos, cubePos[j])){
+                        if(xColliding&&!yColliding&&!zColliding) normalVector = calculateNormal([possiblePos[0], 0.0, 0.0], [cubePos[j][0], 0.0, 0.0]);
+                        else if(!xColliding&&yColliding&&!zColliding) normalVector = calculateNormal([0.0, possiblePos[1], 0.0], [0.0, cubePos[j][1], 0.0]);
+                        else if(!xColliding&&!yColliding&&zColliding) normalVector = calculateNormal([0.0, 0.0, possiblePos[2]], [0.0, 0.0, cubePos[j][2]]);
+                        else if(xColliding&&yColliding&&!zColliding) normalVector = calculateNormal([possiblePos[0], possiblePos[1], 0.0], [cubePos[j][0], cubePos[j][1], 0.0]);
+                        else if(!xColliding&&yColliding&&zColliding) normalVector = calculateNormal([0.0, possiblePos[1], possiblePos[2]], [0.0, cubePos[j][1], cubePos[j][2]]);
+                        else if(xColliding&&!yColliding&&zColliding) normalVector = calculateNormal([possiblePos[0], 0.0, possiblePos[2]], [cubePos[j][0], 0.0, cubePos[j][2]]);
+                        else if(xColliding&&yColliding&&zColliding) normalVector = calculateNormal([possiblePos[0], possiblePos[1], possiblePos[2]], [cubePos[j][0], cubePos[j][1], cubePos[j][2]]);
+                        if(cubeStatic[j]==0){
+                            let otherCubeVel = Math.sqrt(Math.pow(cubeVel[j][0], 2.0) + Math.pow(cubeVel[j][1], 2.0) + Math.pow(cubeVel[j][2], 2.0));
+                            cubeVel[j][0] = (cubeVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherCubeVel) / 3.0;
+                            cubeVel[i][0] = (possibleVel[0] + normalVector[0] * otherCubeVel + normalVector[0] * possibleSpeed) / 2.0;
+                            cubeVel[j][1] = (cubeVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherCubeVel) / 3.0;
+                            cubeVel[i][1] = (possibleVel[1] + normalVector[1] * otherCubeVel + normalVector[1] * possibleSpeed) / 2.0;
+                            cubeVel[j][2] = (cubeVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherCubeVel) / 3.0;
+                            cubeVel[i][2] = (possibleVel[2] + normalVector[2] * otherCubeVel + normalVector[2] * possibleSpeed) / 2.0;
+                        }
+                        else{
+                            cubeVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
+                            cubeVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
+                            cubeVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
+                        }
+                    }
+                }
+            }
+            // cube-sphere collisions
+            for(let j=0;j<spherePos.length;j++){
+                if(Math.abs(possiblePos[0] - spherePos[j][0]) < 2.0 && collidingSphereCube(spherePos[j], possiblePos) && Math.abs(prevPos[0] - spherePos[j][0]) > 1.4) {
+                    xColliding = true; 
+                }
+                if(Math.abs(possiblePos[1] - spherePos[j][1]) < 2.0 && collidingSphereCube(spherePos[j], possiblePos) && Math.abs(prevPos[1] - spherePos[j][1]) > 1.4) {
+                    yColliding = true;
+                    frictionApplied = true;
+                }
+                if(Math.abs(possiblePos[2] - spherePos[j][2]) < 2.0 && collidingSphereCube(spherePos[j], possiblePos) && Math.abs(prevPos[2] - spherePos[j][2]) > 1.4) {
+                    zColliding = true;
+                }
+                if((xColliding||yColliding||zColliding) && collidingSphereCube(spherePos[j], possiblePos)){
+                    normalVector = calculateNormal(possiblePos, spherePos[j]);
+                    if(sphereStatic[j]==0){
+                        let otherSphereVel = Math.sqrt(Math.pow(sphereVel[j][0], 2.0) + Math.pow(sphereVel[j][1], 2.0) + Math.pow(sphereVel[j][2], 2.0));
+                        sphereVel[j][0] = (sphereVel[j][0] - normalVector[0] * possibleSpeed - normalVector[0] * otherSphereVel) / 2.0;
+                        cubeVel[i][0] = (possibleVel[0] + normalVector[0] * otherSphereVel + normalVector[0] * possibleSpeed) / 3.0;
+                        sphereVel[j][1] = (sphereVel[j][1] - normalVector[1] * possibleSpeed - normalVector[1] * otherSphereVel) / 2.0;
+                        cubeVel[i][1] = (possibleVel[1] + normalVector[1] * otherSphereVel + normalVector[1] * possibleSpeed) / 3.0;
+                        sphereVel[j][2] = (sphereVel[j][2] - normalVector[2] * possibleSpeed - normalVector[2] * otherSphereVel) / 2.0;
+                        cubeVel[i][2] = (possibleVel[2] + normalVector[2] * otherSphereVel + normalVector[2] * possibleSpeed) / 3.0;
+                    }
+                    else{
+                        cubeVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 3.0;
+                        cubeVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 3.0;
+                        cubeVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 3.0;
+                    }
+                }
+            }
+            // cube-wall collisions
+            if(possiblePos[0] >= 9){
+                xColliding = true;
+                normalVector = calculateNormal(possiblePos, [10, possiblePos[1], possiblePos[2]]);
+                cubeVel[i][0] = normalVector[0] * Math.abs(cubeVel[i][0]) / 3.0;
+            }
+            else if(possiblePos[0] <= -9){
+                xColliding = true;
+                normalVector = calculateNormal(possiblePos, [-10, possiblePos[1], possiblePos[2]]);
+                cubeVel[i][0] = normalVector[0] * Math.abs(cubeVel[i][0]) / 3.0;
+            }
+            if(possiblePos[2] >= 9){
+                zColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], 10]);
+                cubeVel[i][2] = normalVector[2] * Math.abs(cubeVel[i][2]) / 3.0;
+            }
+            else if(possiblePos[2] <= -9){
+                zColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], -10]);
+                cubeVel[i][2] = normalVector[2] * Math.abs(cubeVel[i][2]) / 3.0;
+            }
+            // cube-ground and cube-ceiling collision
+            if(possiblePos[1] >= 45.0) {
+                yColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0],46,possiblePos[2]]);
+                cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
+            }
+            else if(possiblePos[1] <= 0.0) {
+                yColliding = true;
+                normalVector = calculateNormal(possiblePos, [possiblePos[0],-2,possiblePos[2]]);
+                cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
+                possibleVel[1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
+                frictionApplied = true;
+            }
+            // updating unblocked position
+            if(!xColliding){
+                cubeVel[i][0] = possibleVel[0];
+                if(frictionApplied)
+                    cubeVel[i][0] *= 1.0 - frictionalCoeffC * deltaTime;
+                cubePos[i][0] = possiblePos[0];
+            }
+            if(!yColliding){
+                cubeVel[i][1] = possibleVel[1];
+                cubePos[i][1] = possiblePos[1];
+            }
+            if(!zColliding){
+                cubeVel[i][2] = possibleVel[2];
+                if(frictionApplied)
+                    cubeVel[i][2] *= 1.0 - frictionalCoeffC * deltaTime;
+                cubePos[i][2] = possiblePos[2];
+            }
+            // updating rotation
+            cubeAng[i] = possibleAng;
+            cubeAngVel[i] = possibleAngVec;
         }
     }
 
@@ -548,7 +764,7 @@ function main(){
             updatePosition(deltaTime);
         
 
-        drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, spherePos);
+        drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, cubeAngAxis, spherePos);
         
         
         requestAnimationFrame(render);

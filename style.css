@@ -79,7 +79,7 @@ body{
     border-radius: 8px;
     width: 48px;
     height: 48px;
-    margin-left: 10%;
+    margin-left: 5%;
     border-style: none;
     font-size:17px;
     transition-duration: 0.3s;
@@ -148,6 +148,14 @@ body{
 }
 .templateButton:active{
     background-color: #7b919e;
+}
+#checkboxText{
+    font-size: 15px;
+    margin:0px;
+}
+#dynamicCheck{
+    margin-right:0px;
+    margin-left:25px;
 }
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,

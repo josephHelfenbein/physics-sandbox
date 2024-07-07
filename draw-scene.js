@@ -1,4 +1,4 @@
-function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, spherePos) {
+function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, cubeAngAxis, spherePos) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -101,6 +101,7 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
     // CUBE DRAWING
     for(let k=0; k<cubePos.length; k++){
       mat4.translate(modelViewMatrix, modelViewMatrix, [cubePos[k][0], cubePos[k][1], cubePos[k][2]]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, cubeAng[k], [cubeAngAxis[k][0], cubeAngAxis[k][1], cubeAngAxis[k][2]]);
       // Set the shader uniforms
       gl.uniformMatrix4fv(
         programInfo.uniformLocations.projectionMatrix,
@@ -118,17 +119,18 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
           normalMatrix,
       );
 
-      
+
       texArr = addToTriangles(k, triangleCount, triangles, texArr, modelViewMatrix, 0);
 
       
-      // draw cube
+      // draw cubes
       {
           const vertexCount = buffers.vertices;
           const type = gl.UNSIGNED_SHORT;
           const offset = 0;
           gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
       }      
+      mat4.rotate(modelViewMatrix, modelViewMatrix, -cubeAng[k], [cubeAngAxis[k][0], cubeAngAxis[k][1], cubeAngAxis[k][2]]);
       mat4.translate(modelViewMatrix, modelViewMatrix, [-cubePos[k][0], -cubePos[k][1], -cubePos[k][2]]);
     }
 
@@ -166,7 +168,7 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
 
       texArr = addToSpherePos(lastIndex, k, texArr, modelViewMatrix);
         
-        // draw cube
+        // draw spheres
         {
             const vertexCount = sphereBuffers.vertices;
             const type = gl.UNSIGNED_SHORT;
