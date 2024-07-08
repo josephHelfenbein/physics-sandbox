@@ -31,10 +31,9 @@ function main(){
     let cubePos = [[0,-100,0]];
     let cubeVel = [[0, 0, 0]];
     let cubeAcc = [[0, 0, 0]];
-    let cubeAngVel = [0];
-    let cubeAngAcc = [0];
-    let cubeAng = [0];
-    let cubeAngAxis = [[0, 0, 0]];
+    let cubeAngVel = [[0, 0, 0]];
+    let cubeAngAcc = [[0, 0, 0]];
+    let cubeAng = [[0, 0, 0]];
     let cubeStatic = [1];
 
     let spherePos = [];
@@ -257,6 +256,7 @@ function main(){
     document.getElementById('template1').onclick = function() {spawnTemplate(1)};
     document.getElementById('template2').onclick = function() {spawnTemplate(2)};
     document.getElementById('template3').onclick = function() {spawnTemplate(3)};
+    document.getElementById('template4').onclick = function() {spawnTemplate(4)};
 
 
     let g = 9.8
@@ -296,10 +296,9 @@ function main(){
             cubePos.push([x, y, z]);
             cubeVel.push([+vx, +vy, +vz]);
             cubeAcc.push([0, -g, 0]);
-            cubeAngVel.push(0);
-            cubeAng.push(0);
-            cubeAngAcc.push(0);
-            cubeAngAxis.push([0, 0, 0]);
+            cubeAngVel.push([0, 0, 0]);
+            cubeAng.push([0, 0, 0]);
+            cubeAngAcc.push([0, 0, 0]);
             if(staticCheck.checked == true)
                 cubeStatic.push(1);
             else
@@ -319,10 +318,9 @@ function main(){
     function despawnAll(){
         cubePos = [[0,-100,0]];
         cubeVel = [[0, 0, 0]];
-        cubeAngVel = [0];
-        cubeAngAcc = [0];
-        cubeAng = [0];
-        cubeAngAxis = [[0, 0, 0]];
+        cubeAngVel = [[0, 0, 0]];
+        cubeAngAcc = [[0, 0, 0]];
+        cubeAng = [[0, 0, 0]];
         cubeStatic = [1];
         sphereStatic = [];
         spherePos = [];
@@ -416,6 +414,23 @@ function main(){
                     }
                 }
                 break;
+            case 4:
+                for(let i=-1;i<2;i++){
+                    for(let j=-1;j<2;j++){
+                        for(let k=3;k<6;k++){
+                            x.value = i * 2;
+                            y.value = k * 2;
+                            z.value = j * 2;
+                            staticCheck.checked = false;
+                            vx.value = i * 10.0 * (Math.random() + 1);
+                            vy.value = k * 10.0 * (Math.random() + 1);
+                            vz.value = j * 10.0 * (Math.random() + 1);
+                            objType.value = "cube";
+                            spawnObject();
+                        }
+                    }
+                }
+                break;
         }
     }
     function getDistance(arr1, arr2){
@@ -430,7 +445,7 @@ function main(){
             arrS[1] - arrC[1],
             arrS[2] - arrC[2],
         ];
-        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0) && (Math.sqrt(Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0)) <= 2.414);
+        return (Math.abs(collisionPoint[0]) < 2.0 && Math.abs(collisionPoint[1]) < 2.0 && Math.abs(collisionPoint[2]) < 2.0) && (Math.sqrt(Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0)) <= 2.414);
     }
     function collidingCubes(arr1, arr2){
         let collisionPoint = [
@@ -438,7 +453,7 @@ function main(){
             arr1[1] - arr2[1],
             arr1[2] - arr2[2],
         ];
-        return (Math.abs(collisionPoint[0]) <= 2.0 && Math.abs(collisionPoint[1]) <= 2.0 && Math.abs(collisionPoint[2]) <= 2.0);
+        return (Math.abs(collisionPoint[0]) < 2.0 && Math.abs(collisionPoint[1]) < 2.0 && Math.abs(collisionPoint[2]) < 2.0);
     }
     function calculateNormal(arr1, arr2){
         let dist = getDistance(arr1, arr2);
@@ -610,8 +625,16 @@ function main(){
                 +cubePos[i][1] - cubeVel[i][1] * deltaTime,
                 +cubePos[i][2] - cubeVel[i][2] * deltaTime,
             ];
-            let possibleAngVec= cubeAngVel[i] + cubeAngAcc[i] * deltaTime;
-            let possibleAng = cubeAng[i] + cubeAngVel[i] * deltaTime;
+            let possibleAngVel= [
+                cubeAngVel[i][0] + cubeAngAcc[i][0] * deltaTime,
+                cubeAngVel[i][1] + cubeAngAcc[i][1] * deltaTime,
+                cubeAngVel[i][2] + cubeAngAcc[i][2] * deltaTime,
+            ];
+            let possibleAng = [
+                cubeAng[i][0] + cubeAngVel[i][0] * deltaTime,
+                cubeAng[i][1] + cubeAngVel[i][1] * deltaTime,
+                cubeAng[i][2] + cubeAngVel[i][2] * deltaTime,
+            ];
             let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
             let normalVector = [];
             // cube-cube collisions
@@ -735,7 +758,7 @@ function main(){
             }
             // updating rotation
             cubeAng[i] = possibleAng;
-            cubeAngVel[i] = possibleAngVec;
+            cubeAngVel[i] = possibleAngVel;
         }
     }
 
@@ -764,7 +787,7 @@ function main(){
             updatePosition(deltaTime);
         
 
-        drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, cubeAngAxis, spherePos);
+        drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, spherePos);
         
         
         requestAnimationFrame(render);

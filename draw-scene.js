@@ -1,4 +1,4 @@
-function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, cubeAngAxis, spherePos) {
+function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphereBuffers, cameraLoc, cameraRot, cubePos, cubeAng, spherePos) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
     gl.clearDepth(1.0); // Clear everything
     gl.enable(gl.DEPTH_TEST); // Enable depth testing
@@ -82,26 +82,28 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
       -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0,      1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0, -1.0,
     
       // Top face
-      -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,     1.0, 1.0, -1.0,-1.0, 1.0, -1.0,1.0, 1.0, 1.0,
+      -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,     1.0, 1.0, -1.0,-1.0, 1.0, -1.0, 1.0, 1.0, 1.0,
     
       // Bottom face
       -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0,      -1.0, -1.0, 1.0,-1.0, -1.0, -1.0, 1.0, -1.0, 1.0,
     
       // Right face
-      1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0,     1.0, -1.0, 1.0,1.0, -1.0, -1.0,1.0, 1.0, 1.0,
+      1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0,     1.0, -1.0, 1.0,1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
     
       // Left face
       -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0,      -1.0, 1.0, -1.0,-1.0, -1.0, -1.0,-1.0, 1.0, 1.0,
     ];
     const triangleCount = triangles.length / 9;
-    const textureSize = Math.ceil(Math.sqrt((triangleCount*cubePos.length + spherePos.length) * 3));
+    const textureSize = Math.ceil(Math.sqrt(triangleCount * cubePos.length * 3 + spherePos.length));
     let texArr = new Float32Array(textureSize * textureSize * 4);
     
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     // CUBE DRAWING
     for(let k=0; k<cubePos.length; k++){
       mat4.translate(modelViewMatrix, modelViewMatrix, [cubePos[k][0], cubePos[k][1], cubePos[k][2]]);
-      mat4.rotate(modelViewMatrix, modelViewMatrix, cubeAng[k], [cubeAngAxis[k][0], cubeAngAxis[k][1], cubeAngAxis[k][2]]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, cubeAng[k][0], [1, 0, 0]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, cubeAng[k][1], [0, 1, 0]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, cubeAng[k][2], [0, 0, 1]);
       // Set the shader uniforms
       gl.uniformMatrix4fv(
         programInfo.uniformLocations.projectionMatrix,
@@ -130,7 +132,11 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
           const offset = 0;
           gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
       }      
-      mat4.rotate(modelViewMatrix, modelViewMatrix, -cubeAng[k], [cubeAngAxis[k][0], cubeAngAxis[k][1], cubeAngAxis[k][2]]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, -cubeAng[k][2], [0, 0, 1]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, -cubeAng[k][1], [0, 1, 0]);
+      mat4.rotate(modelViewMatrix, modelViewMatrix, -cubeAng[k][0], [1, 0, 0]);
+      
+      
       mat4.translate(modelViewMatrix, modelViewMatrix, [-cubePos[k][0], -cubePos[k][1], -cubePos[k][2]]);
     }
 
