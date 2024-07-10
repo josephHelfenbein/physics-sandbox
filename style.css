@@ -309,3 +309,27 @@ input[type=number] {
         font-size:14px;
     }
 }
+@media (max-width: 427.98px) {
+    #spawnRect{
+        width:250px;
+    }
+    #webglCanvas{
+        width: 80%;
+    }
+    #xyz-submit{
+        width: 50px;
+        height:55px;
+        margin-left:5px;
+        font-size:12px;
+    }
+    #removeAll{
+        width: 65px;
+        font-size:10px;   
+    }
+    #templatesRect{
+        width:310px;
+    }
+    .templateButton{
+        width: 80px;
+    }
+}
