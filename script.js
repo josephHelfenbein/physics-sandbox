@@ -27,7 +27,7 @@ function main(){
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     let cameraLoc = [0.0, 0.0, 30.0];
-    let cameraRot = [0,0];
+    let cameraRot = [25,0];
     let cubePos = [[0,-100,0]];
     let cubeVel = [[0, 0, 0]];
     let cubeAcc = [[0, 0, 0]];
@@ -257,38 +257,68 @@ function main(){
     document.getElementById('template2').onclick = function() {spawnTemplate(2)};
     document.getElementById('template3').onclick = function() {spawnTemplate(3)};
     document.getElementById('template4').onclick = function() {spawnTemplate(4)};
-
+    const alertPlaceholder = document.getElementById('alertDiv')
+    const inputx = document.getElementById('x-input');
+    const inputy = document.getElementById('y-input');
+    const inputz = document.getElementById('z-input');
+    const inputvx = document.getElementById('x-vinput');
+    const inputvy = document.getElementById('y-vinput');
+    const inputvz = document.getElementById('z-vinput');
+    const staticCheck = document.getElementById('dynamicCheck');
+    const resetInputs = () => {
+        inputx.value = 0;
+        inputy.value = 0;
+        inputz.value = 0;
+        inputvx.value = 0;
+        inputvy.value = 0;
+        inputvz.value = 0;
+        staticCheck.checked = false;
+    }
+    resetInputs();
 
     let g = 9.8
+    const appendAlert = (message, type) => {
+        const wrapper = document.createElement('div')
+        wrapper.innerHTML = [
+            `<div id="errorPopup" class="alert alert-${type} fade show d-flex align-items-center" role="alert">`,
+                `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" viewBox="0 0 16 16" role="img" aria-label="Warning:">`,
+                    `<path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>`,
+                `</svg>`,
+                `<div>${message}</div>`,
+                `<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>`,
+            `</div>`
+        ].join('')
+        alertPlaceholder.append(wrapper);
+        var alertList = document.querySelectorAll('.alert');
+        let alertObj = new bootstrap.Alert(alertList[alertList.length-1]);
+        setInterval(function(){alertObj.close()}, 3000);
+    }
     function spawnObject(){
         let objType = document.getElementById('object-choice').value;
-        let x = document.getElementById('x-input').value;
-        let y = document.getElementById('y-input').value;
-        let z = document.getElementById('z-input').value;
-        let vx = document.getElementById('x-vinput').value;
-        let vy = document.getElementById('y-vinput').value;
-        let vz = document.getElementById('z-vinput').value;
-        let errMessage = document.getElementById('errMessage');
-        let staticCheck = document.getElementById('dynamicCheck');
-        errMessage.textContent = "";
-        if(x < -9){x = -9; document.getElementById('x-input').value = -9;}
-        if(x > 9){x = 9; document.getElementById('x-input').value = 9;}
-        if(z < -9){z = -9; document.getElementById('z-input').value = -9;}
-        if(z > 9){z = 9; document.getElementById('z-input').value = 9;}
-        if(y < 0){y = 0; document.getElementById('y-input').value = 0;}
-        if(y > 30){y = 30; document.getElementById('y-input').value = 30;}
+        let x = inputx.value;
+        let y = inputy.value;
+        let z = inputz.value;
+        let vx = inputvx.value;
+        let vy = inputvy.value;
+        let vz = inputvz.value;
+        if(x < -9){x = -9; inputx.value = -9;}
+        if(x > 9){x = 9; inputx.value = 9;}
+        if(z < -9){z = -9; inputz.value = -9;}
+        if(z > 9){z = 9; inputz.value = 9;}
+        if(y < 0){y = 0; inputy.value = 0;}
+        if(y > 30){y = 30; inputy.value = 30;}
         let spawning = true;
         for(let i=0; i<cubePos.length;i++){
             if(Math.abs(x - cubePos[i][0]) < 2.0 && Math.abs(y - cubePos[i][1]) < 2.0 && Math.abs(z - cubePos[i][2]) < 2.0)
                 {
-                    errMessage.textContent = "Could not spawn: Object is overlapping another in the scene.";
+                    appendAlert('Could not spawn: Object is overlapping another in the scene.', 'danger');
                     spawning = false;
                 }
         }
         for(let i=0; i<spherePos.length;i++){
             if(Math.abs(x - spherePos[i][0]) < 2.0 && Math.abs(y - spherePos[i][1]) < 2.0 && Math.abs(z - spherePos[i][2]) < 2.0)
                 {
-                    errMessage.textContent = "Could not spawn: Object is overlapping another in the scene.";
+                    appendAlert('Could not spawn: Object is overlapping another in the scene.', 'danger');
                     spawning = false;
                 }
         }
@@ -326,6 +356,12 @@ function main(){
         spherePos = [];
         sphereVel = [];
         sphereAcc = [];
+        var alertList = document.querySelectorAll('.alert');
+        alertList.forEach(function (alert) {
+            let alertObj = new bootstrap.Alert(alert);
+            alertObj.close();
+        });
+        resetInputs();
     }
     let paused = false;
     function pausePlayTime(){
@@ -336,52 +372,52 @@ function main(){
     }
     const delay = ms => new Promise(res => setTimeout(res, ms));
     const spawnTemplate = async (num) => {
-        let x = document.getElementById('x-input');
-        let y = document.getElementById('y-input');
-        let z = document.getElementById('z-input');
-        let vx = document.getElementById('x-vinput');
-        let vy = document.getElementById('y-vinput');
-        let vz = document.getElementById('z-vinput');
         let objType = document.getElementById('object-choice');
-        let staticCheck = document.getElementById('dynamicCheck');
+        let outerSpawnTry = 0;
         switch(num){
             case 1:
-                x.value = -9;
-                y.value = 20;
-                z.value = 0;
-                vx.value = Math.random() + 10;
-                vy.value = (6 * Math.random()) - 16;
-                vz.value = (6 * Math.random()) - 3;
+                inputx.value = -9;
+                inputy.value = 20;
+                inputz.value = -5;
+                inputvx.value = Math.random() + 10;
+                inputvy.value = (6 * Math.random()) - 16;
+                inputvz.value = (6 * Math.random()) - 3;
                 objType.value = "sphere";
                 staticCheck.checked = false;
+                outerSpawnTry = 0;
                 if(spawnObject())
                 for(let i=0; i<100; i++){
-                    x.value = -9;
-                    y.value = 20;
-                    z.value = 0;
-                    vx.value = Math.random() + 10;
-                    vy.value = (6 * Math.random()) - 16;
-                    vz.value = (6 * Math.random()) - 3;
-                    objType.value = "sphere";
-                    staticCheck.checked = false;
                     let spawned = false;
+                    let spawnTry = 0;
                     while(!spawned) {
+                        if(spawnTry>3) break;
+                        await delay(200);
+                        inputx.value = -9;
+                        inputy.value = 20;
+                        inputz.value = -5;
+                        inputvx.value = Math.random() + 10;
+                        inputvy.value = (6 * Math.random()) - 16;
+                        inputvz.value = (6 * Math.random()) - 3;
+                        objType.value = "sphere";
+                        staticCheck.checked = false;
                         spawned = spawnObject();
-                        await delay(50);
+                        spawnTry++;
                     }
+                    if(spawnTry>5) outerSpawnTry++;
+                    if(outerSpawnTry>3) break;
                 }
                 break;
             case 2:
                 for(let i=-1;i<2;i++){
                     for(let j=-1;j<2;j++){
                         for(let k=3;k<6;k++){
-                            x.value = i * 2;
-                            y.value = k * 2;
-                            z.value = j * 2;
+                            inputx.value = i * 2;
+                            inputy.value = k * 2;
+                            inputz.value = j * 2;
                             staticCheck.checked = false;
-                            vx.value = i * 10.0 * (Math.random() + 1);
-                            vy.value = k * 10.0 * (Math.random() + 1);
-                            vz.value = j * 10.0 * (Math.random() + 1);
+                            inputvx.value = i * 10.0 * (Math.random() + 1);
+                            inputvy.value = k * 10.0 * (Math.random() + 1);
+                            inputvz.value = j * 10.0 * (Math.random() + 1);
                             objType.value = "sphere";
                             spawnObject();
                         }
@@ -389,43 +425,49 @@ function main(){
                 }
                 break;
             case 3:
-                x.value = 0;
-                y.value = 3;
-                z.value = 0;
-                vx.value = 8 * Math.random() - 4;
-                vy.value = 10 * Math.random() + 30;
-                vz.value = 8 * Math.random() - 4;
+                inputx.value = 0;
+                inputy.value = 5;
+                inputz.value = 1;
+                inputvx.value = 8 * Math.random() - 4;
+                inputvy.value = 10 * Math.random() + 30;
+                inputvz.value = 8 * Math.random() - 4;
                 objType.value = "sphere";
                 staticCheck.checked = false;
+                outerSpawnTry = 0;
                 if(spawnObject())
-                for(let i=0; i<100; i++){
-                    x.value = 0;
-                    y.value = 3;
-                    z.value = 0;
-                    staticCheck.checked = false;
-                    vx.value = 8 * Math.random() - 4;
-                    vy.value = 10 * Math.random() + 30;
-                    vz.value = 8 * Math.random() - 4;
-                    objType.value = "sphere";
+                for(let i=0; i<60; i++){
                     let spawned = false;
+                    let spawnTry = 0;
                     while(!spawned) {
-                        spawned = spawnObject();
+                        if(spawnTry>3) break;
                         await delay(150);
+                        inputx.value = 0;
+                        inputy.value = 5;
+                        inputz.value = 1;
+                        inputvx.value = 8 * Math.random() - 4;
+                        inputvy.value = 10 * Math.random() + 30;
+                        inputvz.value = 8 * Math.random() - 4;
+                        staticCheck.checked = false;
+                        objType.value = "sphere";
+                        spawned = spawnObject();
+                        spawnTry++;
                     }
+                    if(spawnTry>5) outerSpawnTry++;
+                    if(outerSpawnTry>3) break;
                 }
                 break;
             case 4:
                 for(let i=-1;i<2;i++){
                     for(let j=-1;j<2;j++){
                         for(let k=3;k<6;k++){
-                            x.value = i * 2;
-                            y.value = k * 2;
-                            z.value = j * 2;
-                            staticCheck.checked = false;
-                            vx.value = i * 10.0 * (Math.random() + 1);
-                            vy.value = k * 10.0 * (Math.random() + 1);
-                            vz.value = j * 10.0 * (Math.random() + 1);
+                            inputx.value = i * 2;
+                            inputy.value = k * 2;
+                            inputz.value = j * 2;
+                            inputvx.value = i * 10.0 * (Math.random() + 1);
+                            inputvy.value = k * 10.0 * (Math.random() + 1);
+                            inputvz.value = j * 10.0 * (Math.random() + 1);
                             objType.value = "cube";
+                            staticCheck.checked = false;
                             spawnObject();
                         }
                     }
