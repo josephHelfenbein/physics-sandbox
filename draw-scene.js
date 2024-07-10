@@ -5,7 +5,6 @@ function drawScene(gl, shaderProgram, programInfo, buffers, planeBuffers, sphere
     gl.depthFunc(gl.LEQUAL); // Near things obscure far things
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
-    gl.enable(gl.FRAMEBUFFER_SRGB); 
     // Clear the canvas before we start drawing on it.
     
     

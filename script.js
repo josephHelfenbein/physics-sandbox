@@ -27,7 +27,7 @@ function main(){
     gl.clear(gl.COLOR_BUFFER_BIT);
     
     let cameraLoc = [0.0, 0.0, 30.0];
-    let cameraRot = [25,0];
+    let cameraRot = [20,30];
     let cubePos = [[0,-100,0]];
     let cubeVel = [[0, 0, 0]];
     let cubeAcc = [[0, 0, 0]];

@@ -169,3 +169,143 @@ input::-webkit-inner-spin-button {
 input[type=number] {
     -moz-appearance: textfield;
 }
+@media (max-width: 1399.98px) { 
+    #webglCanvas{
+        width: 50%;
+    }
+}
+@media (max-width: 1199.98px) { 
+    #webglCanvas{
+        width: 60%;
+    }
+}
+@media (max-width: 767.98px) {
+    body{
+        font-size:15px;
+    }
+    .alert{
+        font-size:9px;
+        padding:9px;
+    }
+    #webglCanvas{
+        width: 70%;
+    }
+    #spawnRect{
+        height:200px;
+        width:400px;
+        padding:20px;
+    }
+    #object-choice{
+        padding-left:12px;
+        padding-right:15px;
+        font-size: 14px;
+    }
+    .xyz-label{
+        padding-right:0px;
+        margin-top:25px;
+    }
+    .xyz-input{
+        width:40px;
+        background-color: #ffffff;
+        padding:6px;
+        margin-right:0px;
+        margin-left:0px;
+        font-size: 12px;
+    }
+}
+@media (max-width: 575.98px) {
+    body{
+        font-size:14px;
+    }
+    .alert{
+        font-size:9px;
+        padding:2px;
+    }
+    #alertDiv{
+        margin-top:160%;
+    }
+    #object-choice{
+        padding-left:10px;
+        padding-right:10px;
+        font-size: 12px;
+    }
+    .xyz-label{
+        margin-top:15px;
+    }
+    .xyz-input{
+        width:40px;
+        background-color: #ffffff;
+        padding:4px;
+    }
+    #spawnRect{
+        margin-bottom:15px;
+        width:370px;
+    }
+    #xyz-submit{
+        width: 90px;
+        height: 60px;
+        margin-left: 10%;
+        margin-right:10%;
+        font-size:15px;
+    }
+    #pausebutton{
+        width: 42px;
+        height: 42px;
+        margin-left: 2.5%;
+        margin-top: 10px;
+    }
+    #dynamicCheck{
+        margin-left:10px;
+    }
+    #templatesRect{
+        height:180px;
+        width:450px;
+    }
+    .templateButton{
+        width: 125px;
+        font-size:15px;
+    }
+    #removeAll{
+        margin-left:5px;
+        width: 100px;
+        font-size:15px;   
+    }
+}
+@media (max-width: 477.98px) {
+    #spawnRect{
+        width:320px;
+    }
+    #xyz-submit{
+        width: 80px;
+        margin-right:0px;
+        font-size:14px;
+    }
+    #checkboxText{
+        font-size: 12px;
+    }
+    #removeAll{
+        margin-left:2.5px;
+        width: 90px;
+        font-size:12px;   
+    }
+    #pausebutton{
+        width: 36px;
+        height: 36px;
+        margin-left: 2%;
+        margin-top: 10px;
+        margin-right:0px;
+    }
+    #dynamicCheck{
+        margin-left:2px;
+    }
+    .xyz-input{
+        width:35px;
+    }
+    #templatesRect{
+        width:380px;
+    }
+    .templateButton{
+        width: 100px;
+        font-size:14px;
+    }
+}
