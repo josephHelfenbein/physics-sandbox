@@ -1,9 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
 body{
-    background-color: #0D0E15;
+    background-color: #171825;
+    background-image: linear-gradient(#131420,#090b13);
     font-size:20px;
     font-family: "Urbanist", Verdana, Geneva, Tahoma, sans-serif;
     font-optical-sizing: auto;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    animation: fadeInWebsite 1s ease;
+}
+@keyframes fadeInWebsite {
+    from{
+        opacity: 0.0;
+    }
+    to{
+        opacity:1.0;
+    }
 }
 #webglCanvas{
     border:1px solid black;
@@ -16,10 +28,10 @@ body{
 #spawnRect{
     height:250px;
     width:500px;
-    background-color: #4B2222;
+    background-color: #501e1e;
     margin-top:30px;
     margin-bottom:30px;
-    border-radius:28px;
+    border-radius:40px;
     margin-right:10px;
     padding:30px;
 }
@@ -29,7 +41,7 @@ body{
     padding-left:20px;
     padding-right:25px;
     color:#303030;
-    border-radius:8px;
+    border-radius:12px;
     border-style:solid;
     border-color: #E0E0E0;
     border-width: 1px;
@@ -39,29 +51,28 @@ body{
 }
 .xyz-label{
     display:inline-block;
-    padding-right:5px;
     margin-top:30px;
     color:#ffffff;
 }
 .xyz-input{
     display:inline-block;
-    width:40px;
+    width: 45px;
     background-color: #ffffff;
     padding:10px;
     padding-right:0px;
     margin-right:5px;
     margin-left:5px;
     color:#303030;
-    border-radius:8px;
+    border-radius:10px;
     border-style:solid;
     border-color: #E0E0E0;
     border-width: 1px;
     font-size: 16px;
 }
 #xyz-submit{
-    background-color: #000000;
+    background-color: #030303;
     color: #ffffff;
-    border-radius: 8px;
+    border-radius: 10px;
     width: 150px;
     height: 60px;
     margin-left: 10%;
@@ -74,6 +85,21 @@ body{
 }
 #xyz-submit:active{
     background-color: #7b919e;
+}
+#description{
+    border-radius:30px;
+    padding:20px;
+    margin-left:auto;
+    margin-right:auto;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-bottom:20px;
+    color: #525252;
+}
+#description>#repoLink{
+    color:#525252;
 }
 #pausebutton{
     background-color: #0f0f0f;
@@ -116,10 +142,10 @@ body{
     align-items: center;
 }
 #templatesRect{
-    height:180px;
+    height:200px;
     width:550px;
     background-color: #22234b;
-    margin-bottom:100px;
+    margin-bottom:150px;
     border-radius:28px;
     padding:15px;
     padding-top:20px;
@@ -247,12 +273,14 @@ input[type=number] {
         margin-left: 10%;
         margin-right:10%;
         font-size:15px;
+        padding:0px;
     }
     #pausebutton{
         width: 42px;
         height: 42px;
         margin-left: 2.5%;
         margin-top: 10px;
+        padding:0px;
     }
     #dynamicCheck{
         margin-left:10px;
