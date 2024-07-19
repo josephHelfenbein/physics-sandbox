@@ -186,7 +186,7 @@ function main(){
             vec3 rayOrigin = vec3(v_Position.xyz) + epsilon * normalize(u_LightDir);
             highp float shadow = 1.0;
 
-            for(int i=0; i<uTriangleCount - uCubeCount * 3; i++){
+            for(int i=0; i<(uTriangleCount * 2 + 9 + uCubeCount * 3)/3; i++){
                 vec4 v0 = getVertex(i*3+0);
                 vec4 v1 = getVertex(i*3+1);
                 vec4 v2 = getVertex(i*3+2);
