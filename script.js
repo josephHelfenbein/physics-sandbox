@@ -594,16 +594,21 @@ function main(){
             getSeparatingPlane(collisionPoint, crossVec(OBB1.axisZ, OBB2.axisZ), OBB1, OBB2)
         );
     }
-    function projectOBB(axis, rotArr){
+    function projectOBB(axis, rotArr, pos){
         const cubeVertices = [
-            [-1, -1, -1], [1, -1, -1],
-            [1, 1, -1], [-1, 1, -1],
-            [-1, -1, 1], [1, -1, 1],
-            [1, 1, 1], [-1, 1, 1]
+            [-1, -1, -1], [-1, -1, 1],
+            [-1, 1, -1], [-1, 1, 1,],
+            [1, -1, -1], [1, -1, 1],
+            [1, 1, -1], [1, 1, 1]
         ]; 
-        /*for(let i = 0; i<cubeVertices.length; i++){
+        for(let i = 0; i<cubeVertices.length; i++){
+            cubeVertices[i] = [
+                cubeVertices[i][0] + pos[0],
+                cubeVertices[i][1] + pos[1],
+                cubeVertices[i][2] + pos[2],
+            ];
             cubeVertices[i] = rotateAxis(cubeVertices[i], rotArr);
-        }*/
+        }
         let min = dotVec(axis, cubeVertices[0]);
         let max = min;
         for(let i = 1; i < cubeVertices.length; i++){
@@ -625,16 +630,25 @@ function main(){
         ];
         for(const axis of axes){
             if(axis[0] == 0 && axis[1] == 0 && axis[2] == 0) continue;
-            const { min: min1, max: max1 } = projectOBB(axis, rotArr1);
-            const { min: min2, max: max2 } = projectOBB(axis, rotArr2);
+            const { min: min1, max: max1 } = projectOBB(axis, rotArr1, OBB1.pos);
+            const { min: min2, max: max2 } = projectOBB(axis, rotArr2, OBB2.pos);
             const o = Math.max(0, Math.min(max1, max2) - Math.max(min1, min2));
             if(o < minOverlap && o != 0 && o != null){
                 minOverlap = o;
                 collisionNormal = axis;
+                const direction = dotVec([
+                    OBB2.pos[0] - OBB1.pos[0],
+                    OBB2.pos[1] - OBB1.pos[1],
+                    OBB2.pos[2] - OBB1.pos[2],
+                ],axis);
+                if(direction > 0) collisionNormal = [
+                    -collisionNormal[0],
+                    -collisionNormal[1],
+                    -collisionNormal[2],
+                ];
             }
         }
         if(minOverlap == 1000000.0) return null;
-        console.log(`Collision Normal: ${collisionNormal}`);
         return normalize(collisionNormal);
     }
     function OBB(pos, axisX, axisY, axisZ){
@@ -846,6 +860,7 @@ function main(){
             let thisCubeVel = Math.sqrt(Math.pow(cubeVel[i][0], 2.0) + Math.pow(cubeVel[i][1], 2.0) + Math.pow(cubeVel[i][2], 2.0));
             let normalVector = [];
             let AABBcolliding = false;
+            let OBBcolliding = false;
             // AABB collision testing
             for(let j=0; j<cubePos.length;j++){
                 if(i!=j)
@@ -876,15 +891,13 @@ function main(){
                         let axisY2 = rotateAxis([0, 1, 0], cubeAng[j]);
                         let axisZ2 = rotateAxis([0, 0, 1], cubeAng[j]);
                         let OBB2 = new OBB(cubePos[j], axisX2, axisY2, axisZ2);
-                        if(cubeCubeCollision(OBB1, OBB2)) {
+                        OBBcolliding = cubeCubeCollision(OBB1, OBB2);
+                        if(OBBcolliding) {
                             // colision response
-
-                            // define normal vector
                             let closest1 = closestPointTo(OBB1, OBB2.pos);
                             let closest2 = closestPointTo(OBB2, OBB1.pos);
                             normalVector = getCollisionNormalCubeCube(OBB1, OBB2, cubeAng[i], cubeAng[j]);
                             if(normalVector == null) continue;
-
                             let contactPoint = [
                                 (closest1[0] + closest2[0]) / 2.0,
                                 (closest1[1] + closest2[1]) / 2.0,
@@ -922,7 +935,7 @@ function main(){
                                 const r1CrossN = crossVec(r1, normalVector);
                                 const r2CrossN = crossVec(r2, normalVector);
                                 
-                                const mass = 1000000.0;
+                                const mass = 5.0;
                                 const invMass = 1 / mass;
 
                                 let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
@@ -967,16 +980,18 @@ function main(){
                                     angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
                                 ];
                                 cubeAngVel[i] = [
-                                    cubeAngVel[i][0] + angMultiplyR1[0],
-                                    cubeAngVel[i][1] + angMultiplyR1[1],
-                                    cubeAngVel[i][2] + angMultiplyR1[2],
+                                    cubeAngVel[i][0] - angMultiplyR1[0],
+                                    cubeAngVel[i][1] - angMultiplyR1[1],
+                                    cubeAngVel[i][2] - angMultiplyR1[2],
                                 ];
                                 cubeAngVel[j] = [
-                                    cubeAngVel[j][0] - angMultiplyR1[0],
-                                    cubeAngVel[j][1] - angMultiplyR1[1],
-                                    cubeAngVel[j][2] - angMultiplyR1[2],
+                                    cubeAngVel[j][0] + angMultiplyR1[0],
+                                    cubeAngVel[j][1] + angMultiplyR1[1],
+                                    cubeAngVel[j][2] + angMultiplyR1[2],
                                 ];
-
+                                if(normalVector == OBB1.axisX) xColliding = true;
+                                else if (normalVector == OBB1.axisY) yColliding = true;
+                                else if (normalVector == OBB1.axisZ) zColliding = true;
 
 
                                 /*if(cubeStatic[j]==0){
