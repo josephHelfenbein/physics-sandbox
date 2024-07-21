@@ -815,7 +815,7 @@ function main(){
                 spherePos[i][2] = possiblePos[2];
             }
         }
-        for(let i=0; i<cubePos.length; i++){
+        for(let i=1; i<cubePos.length; i++){
             while(cubeStatic[i] == 1) i++;
             for(let j=0;j<calculationDoneListCubes.length;j++)
             {
@@ -850,19 +850,23 @@ function main(){
                 cubeAngVel[i][1] + cubeAngAcc[i][1] * deltaTime,
                 cubeAngVel[i][2] + cubeAngAcc[i][2] * deltaTime,
             ];
-            const rotationSpeed = 0.01;
             let possibleAng = [
-                cubeAng[i][0] + cubeAngVel[i][0] * rotationSpeed * deltaTime,
-                cubeAng[i][1] + cubeAngVel[i][1] * rotationSpeed * deltaTime,
-                cubeAng[i][2] + cubeAngVel[i][2] * rotationSpeed * deltaTime,
+                cubeAng[i][0] + cubeAngVel[i][0] * deltaTime,
+                cubeAng[i][1] + cubeAngVel[i][1] * deltaTime,
+                cubeAng[i][2] + cubeAngVel[i][2] * deltaTime,
             ];
             let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
             let thisCubeVel = Math.sqrt(Math.pow(cubeVel[i][0], 2.0) + Math.pow(cubeVel[i][1], 2.0) + Math.pow(cubeVel[i][2], 2.0));
             let normalVector = [];
             let AABBcolliding = false;
             let OBBcolliding = false;
+            let axisX = rotateAxis([1, 0, 0], cubeAng[i]);
+            let axisY = rotateAxis([0, 1, 0], cubeAng[i]);
+            let axisZ = rotateAxis([0, 0, 1], cubeAng[i]);
+            // OBB creation
+            let OBB1 = new OBB(possiblePos, axisX, axisY, axisZ);
             // AABB collision testing
-            for(let j=0; j<cubePos.length;j++){
+            for(let j=1; j<cubePos.length;j++){
                 if(i!=j)
                 if(Math.abs(possiblePos[0] - cubePos[j][0]) < 2 * Math.sqrt(2.0) && Math.abs(possiblePos[1] - cubePos[j][1]) < 2 * Math.sqrt(2.0) && Math.abs(possiblePos[2] - cubePos[j][2]) < 2 * Math.sqrt(2.0)) {
                     AABBcolliding = true;
@@ -879,13 +883,9 @@ function main(){
             }
             // OBB collisions
             if(AABBcolliding){
-                let axisX = rotateAxis([1, 0, 0], cubeAng[i]);
-                let axisY = rotateAxis([0, 1, 0], cubeAng[i]);
-                let axisZ = rotateAxis([0, 0, 1], cubeAng[i]);
-                // OBB creation
-                let OBB1 = new OBB(possiblePos, axisX, axisY, axisZ);
+                
                 // cube-cube collisions
-                for(let j=0; j<cubePos.length; j++){
+                for(let j=1; j<cubePos.length; j++){
                     if(i!=j){
                         let axisX2 = rotateAxis([1, 0, 0], cubeAng[j]);
                         let axisY2 = rotateAxis([0, 1, 0], cubeAng[j]);
@@ -935,7 +935,7 @@ function main(){
                                 const r1CrossN = crossVec(r1, normalVector);
                                 const r2CrossN = crossVec(r2, normalVector);
                                 
-                                const mass = 5.0;
+                                const mass = 500.0;
                                 const invMass = 1 / mass;
 
                                 let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
@@ -957,7 +957,7 @@ function main(){
                                     normalVector[1] * J,
                                     normalVector[2] * J,
                                 ];
-                                cubeVel[i] = [
+                                possibleVel = [
                                     cubeVel[i][0] + impulse[0] * invMass,
                                     cubeVel[i][1] + impulse[1] * invMass,
                                     cubeVel[i][2] + impulse[2] * invMass,
@@ -979,19 +979,17 @@ function main(){
                                     angMultiplyR2[0] * invInertia[1][0] + angMultiplyR2[1] * invInertia[1][1] + angMultiplyR2[2] * invInertia[1][2],
                                     angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
                                 ];
-                                cubeAngVel[i] = [
-                                    cubeAngVel[i][0] - angMultiplyR1[0],
-                                    cubeAngVel[i][1] - angMultiplyR1[1],
-                                    cubeAngVel[i][2] - angMultiplyR1[2],
+                                possibleAngVel = [
+                                    cubeAngVel[i][0] - angMultiplyR1[0] * 6.283 * deltaTime,
+                                    cubeAngVel[i][1] - angMultiplyR1[1] * 6.283 * deltaTime,
+                                    cubeAngVel[i][2] - angMultiplyR1[2] * 6.283 * deltaTime,
                                 ];
                                 cubeAngVel[j] = [
-                                    cubeAngVel[j][0] + angMultiplyR1[0],
-                                    cubeAngVel[j][1] + angMultiplyR1[1],
-                                    cubeAngVel[j][2] + angMultiplyR1[2],
+                                    cubeAngVel[j][0] + angMultiplyR1[0] * 6.283 * deltaTime,
+                                    cubeAngVel[j][1] + angMultiplyR1[1] * 6.283 * deltaTime,
+                                    cubeAngVel[j][2] + angMultiplyR1[2] * 6.283 * deltaTime,
                                 ];
-                                if(normalVector == OBB1.axisX) xColliding = true;
-                                else if (normalVector == OBB1.axisY) yColliding = true;
-                                else if (normalVector == OBB1.axisZ) zColliding = true;
+
 
 
                                 /*if(cubeStatic[j]==0){
