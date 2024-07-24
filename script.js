@@ -558,104 +558,125 @@ function main(){
             arr[2] / length
         ];
     }
-    function getSeparatingPlane(collisionPoint, plane, OBB1, OBB2){
-        return (
-            Math.abs(dotVec(collisionPoint, plane)) >
-            (
-                Math.abs(dotVec(OBB1.axisX, plane)) +
-                Math.abs(dotVec(OBB1.axisY, plane)) +
-                Math.abs(dotVec(OBB1.axisZ, plane)) +
-                Math.abs(dotVec(OBB2.axisX, plane)) +
-                Math.abs(dotVec(OBB2.axisY, plane)) +
-                Math.abs(dotVec(OBB2.axisZ, plane))
-            )
-        ); 
+    function projShapeOntoAxis(axis, OBB){
+        let min = dotVec(axis, OBB.vertices[0]);
+        let max = min;
+        let collVertex = OBB.vertices[0];
+        for(let i=1; i<OBB.vertices.length; i++){
+            let p = dotVec(axis, OBB.vertices[i]);
+            if(p < min) {
+                min = p;
+                collVertex = OBB.vertices[i];
+            }
+            if(p > max) max = p;
+        }
+        return {
+            min: min,
+            max: max,
+            collVertex: collVertex
+        };
     }
     function cubeCubeCollision(OBB1, OBB2){
-        let collisionPoint = [
-            OBB2.pos[0] - OBB1.pos[0],
-            OBB2.pos[1] - OBB1.pos[1],
-            OBB2.pos[2] - OBB1.pos[2],
+        let proj1, proj2, overlap = 0;
+        let minOverlap = null;
+        let smallestAxis;
+        let vertexObj;
+
+        let axes1 = [
+            OBB1.axisX, OBB1.axisY, OBB1.axisZ,
+            normalize(crossVec(OBB1.axisX, OBB2.axisX)), normalize(crossVec(OBB1.axisX, OBB2.axisY)), normalize(crossVec(OBB1.axisX, OBB2.axisZ)), 
+            normalize(crossVec(OBB1.axisY, OBB2.axisX)), normalize(crossVec(OBB1.axisY, OBB2.axisY)), normalize(crossVec(OBB1.axisY, OBB2.axisZ)),
+            normalize(crossVec(OBB1.axisZ, OBB2.axisX)), normalize(crossVec(OBB1.axisZ, OBB2.axisY)), normalize(crossVec(OBB1.axisZ, OBB2.axisZ)),
         ];
-        return !(getSeparatingPlane(collisionPoint, OBB1.axisX, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, OBB1.axisY, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, OBB1.axisZ, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, OBB2.axisX, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, OBB2.axisY, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, OBB2.axisZ, OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisX, OBB2.axisX), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisX, OBB2.axisY), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisX, OBB2.axisZ), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisY, OBB2.axisX), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisY, OBB2.axisY), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisY, OBB2.axisZ), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisZ, OBB2.axisX), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisZ, OBB2.axisY), OBB1, OBB2) ||
-            getSeparatingPlane(collisionPoint, crossVec(OBB1.axisZ, OBB2.axisZ), OBB1, OBB2)
-        );
+        let axes2 = [
+            OBB2.axisX, OBB2.axisY, OBB2.axisZ,
+            normalize(crossVec(OBB2.axisX, OBB1.axisX)), normalize(crossVec(OBB2.axisX, OBB1.axisY)), normalize(crossVec(OBB2.axisX, OBB1.axisZ)), 
+            normalize(crossVec(OBB2.axisY, OBB1.axisX)), normalize(crossVec(OBB2.axisY, OBB1.axisY)), normalize(crossVec(OBB2.axisY, OBB1.axisZ)),
+            normalize(crossVec(OBB2.axisZ, OBB1.axisX)), normalize(crossVec(OBB2.axisZ, OBB1.axisY)), normalize(crossVec(OBB2.axisZ, OBB1.axisZ)),
+        ];
+
+        for(let i=0; i<axes1.length; i++){
+            proj1 = projShapeOntoAxis(axes1[i], OBB1);
+            proj2 = projShapeOntoAxis(axes1[i], OBB2);
+            overlap = Math.min(proj1.max, proj2.max) - Math.max(proj1.min, proj2.min);
+            if(overlap < 0) return false;
+            if((proj1.max > proj2.max && proj1.min < proj2.min) || 
+                (proj1.max < proj2.max && proj1.min > proj2.min)){
+                    let mins = Math.abs(proj1.min - proj2.min);
+                    let maxs = Math.abs(proj1.max - proj2.max);
+                    if(mins < maxs) overlap += mins;
+                    else{
+                        overlap += maxs;
+                        axes1[i] = [-axes1[i][0], -axes1[i][1], -axes1[i][2]];
+                    }
+            }
+            if(overlap < minOverlap || minOverlap === null){
+                minOverlap = overlap;
+                smallestAxis = axes1[i];
+                vertexObj = OBB2;
+                if(proj1.max > proj2.max){
+                    smallestAxis = [-axes1[i][0], -axes1[i][1], -axes1[i][2]];
+                }
+            }
+            
+        }
+        for(let i=0; i<axes2.length; i++){
+            proj1 = projShapeOntoAxis(axes2[i], OBB1);
+            proj2 = projShapeOntoAxis(axes2[i], OBB2);
+            overlap = Math.min(proj1.max, proj2.max) - Math.max(proj1.min, proj2.min);
+            if(overlap < 0) return false;
+            if((proj1.max > proj2.max && proj1.min < proj2.min) || 
+                (proj1.max < proj2.max && proj1.min > proj2.min)){
+                    let mins = Math.abs(proj1.min - proj2.min);
+                    let maxs = Math.abs(proj1.max - proj2.max);
+                    if(mins < maxs) overlap += mins;
+                    else{
+                        overlap += maxs;
+                        axes2[i] = [-axes2[i][0], -axes2[i][1], -axes2[i][2]];
+                    }
+            }
+            if(overlap < minOverlap || minOverlap === null){
+                minOverlap = overlap;
+                smallestAxis = axes2[i];
+                vertexObj = OBB1;
+                if(proj1.max < proj2.max){
+                    smallestAxis = [-axes2[i][0], -axes2[i][1], -axes2[i][2]];
+                }
+            }
+        }
+
+        let contactVertex = projShapeOntoAxis(smallestAxis, vertexObj).collVertex;
+
+        return {
+            colliding: true,
+            collisionPoint: contactVertex,
+            normal: smallestAxis,
+            penetrationDepth: minOverlap
+        };
     }
-    function projectOBB(axis, rotArr, pos){
-        const cubeVertices = [
+    function OBB(pos, rotArr){
+        this.pos = pos;
+        let cubeVertices = [
             [-1, -1, -1], [-1, -1, 1],
             [-1, 1, -1], [-1, 1, 1,],
             [1, -1, -1], [1, -1, 1],
             [1, 1, -1], [1, 1, 1]
         ]; 
-        for(let i = 0; i<cubeVertices.length; i++){
+        for(let i=0; i<cubeVertices.length; i++){
+            cubeVertices[i] = rotateAxis(cubeVertices[i], rotArr);
             cubeVertices[i] = [
                 cubeVertices[i][0] + pos[0],
                 cubeVertices[i][1] + pos[1],
                 cubeVertices[i][2] + pos[2],
             ];
-            cubeVertices[i] = rotateAxis(cubeVertices[i], rotArr);
         }
-        let min = dotVec(axis, cubeVertices[0]);
-        let max = min;
-        for(let i = 1; i < cubeVertices.length; i++){
-            const projection = dotVec(axis, cubeVertices[i]);
-            if(projection < min) min = projection;
-            if(projection > max) max = projection;
-        }
-        return {min, max};
-    }
-    function getCollisionNormalCubeCube(OBB1, OBB2, rotArr1, rotArr2){
-        let collisionNormal = [];
-        let minOverlap = 1000000.0;
-        let axes = [
-            OBB1.axisX, OBB1.axisY, OBB1.axisZ,
-            OBB2.axisX, OBB2.axisY, OBB2.axisZ,
-            normalize(crossVec(OBB1.axisX, OBB2.axisX)), normalize(crossVec(OBB1.axisX, OBB2.axisY)), normalize(crossVec(OBB1.axisX, OBB2.axisZ)), 
-            normalize(crossVec(OBB1.axisY, OBB2.axisX)), normalize(crossVec(OBB1.axisY, OBB2.axisY)), normalize(crossVec(OBB1.axisY, OBB2.axisZ)),
-            normalize(crossVec(OBB1.axisZ, OBB2.axisX)), normalize(crossVec(OBB1.axisZ, OBB2.axisY)), normalize(crossVec(OBB1.axisZ, OBB2.axisZ)),
-        ];
-        for(const axis of axes){
-            if(axis[0] == 0 && axis[1] == 0 && axis[2] == 0) continue;
-            const { min: min1, max: max1 } = projectOBB(axis, rotArr1, OBB1.pos);
-            const { min: min2, max: max2 } = projectOBB(axis, rotArr2, OBB2.pos);
-            const o = Math.max(0, Math.min(max1, max2) - Math.max(min1, min2));
-            if(o < minOverlap && o != 0 && o != null){
-                minOverlap = o;
-                collisionNormal = axis;
-                const direction = dotVec([
-                    OBB2.pos[0] - OBB1.pos[0],
-                    OBB2.pos[1] - OBB1.pos[1],
-                    OBB2.pos[2] - OBB1.pos[2],
-                ],axis);
-                if(direction > 0) collisionNormal = [
-                    -collisionNormal[0],
-                    -collisionNormal[1],
-                    -collisionNormal[2],
-                ];
-            }
-        }
-        if(minOverlap == 1000000.0) return null;
-        return normalize(collisionNormal);
-    }
-    function OBB(pos, axisX, axisY, axisZ){
-        this.pos = pos;
-        this.axisX = axisX;
-        this.axisY = axisY;
-        this.axisZ = axisZ;
+        
+        this.vertices = cubeVertices;
+
+        this.axisX = rotateAxis([1, 0, 0], rotArr);
+        this.axisY = rotateAxis([0, 1, 0], rotArr);
+        this.axisZ = rotateAxis([0, 0, 1], rotArr);
+        
     }
     const frictionalCoeffS = 1.25;
     const frictionalCoeffC = 4.0;
@@ -692,7 +713,7 @@ function main(){
                 let axisX = rotateAxis([1, 0, 0], cubeAng[j]);
                 let axisY = rotateAxis([0, 1, 0], cubeAng[j]);
                 let axisZ = rotateAxis([0, 0, 1], cubeAng[j]);
-                let OBB1 = new OBB(cubePos[j], axisX, axisY, axisZ);
+                let OBB1 = new OBB(cubePos[j], cubeAng[j]);
                 let closestPoint = closestPointTo(OBB1, spherePos[i]);
                 if(getDistance(closestPoint, spherePos[i]) < 1.0) {
                     //collision response
@@ -817,14 +838,14 @@ function main(){
         }
         for(let i=1; i<cubePos.length; i++){
             while(cubeStatic[i] == 1) i++;
-            for(let j=0;j<calculationDoneListCubes.length;j++)
+            /*for(let j=0;j<calculationDoneListCubes.length;j++)
             {
                 if(i==calculationDoneListCubes[j]) {
                     i++;
                     j=0;
                     if(i>=cubePos.length) break;
                 }
-            }
+            }*/
             if(i>=cubePos.length) break;
             let xColliding = false;
             let yColliding = false;
@@ -860,11 +881,12 @@ function main(){
             let normalVector = [];
             let AABBcolliding = false;
             let OBBcolliding = false;
-            let axisX = rotateAxis([1, 0, 0], cubeAng[i]);
-            let axisY = rotateAxis([0, 1, 0], cubeAng[i]);
-            let axisZ = rotateAxis([0, 0, 1], cubeAng[i]);
             // OBB creation
-            let OBB1 = new OBB(possiblePos, axisX, axisY, axisZ);
+            cubeVel[i] = possibleVel;
+            cubeAngVel[i] = possibleAngVel;
+            cubePos[i] = possiblePos;
+            cubeAng[i] = possibleAng;
+            let OBB1 = new OBB([+cubePos[i][0], +cubePos[i][1], +cubePos[i][2]], cubeAng[i]);
             // AABB collision testing
             for(let j=1; j<cubePos.length;j++){
                 if(i!=j)
@@ -883,26 +905,30 @@ function main(){
             }
             // OBB collisions
             if(AABBcolliding){
-                
                 // cube-cube collisions
                 for(let j=1; j<cubePos.length; j++){
                     if(i!=j){
-                        let axisX2 = rotateAxis([1, 0, 0], cubeAng[j]);
-                        let axisY2 = rotateAxis([0, 1, 0], cubeAng[j]);
-                        let axisZ2 = rotateAxis([0, 0, 1], cubeAng[j]);
-                        let OBB2 = new OBB(cubePos[j], axisX2, axisY2, axisZ2);
+                        let OBB2 = new OBB(cubePos[j], cubeAng[j]);
                         OBBcolliding = cubeCubeCollision(OBB1, OBB2);
-                        if(OBBcolliding) {
+                        if(OBBcolliding.colliding) {
                             // colision response
+                            
                             let closest1 = closestPointTo(OBB1, OBB2.pos);
                             let closest2 = closestPointTo(OBB2, OBB1.pos);
-                            normalVector = getCollisionNormalCubeCube(OBB1, OBB2, cubeAng[i], cubeAng[j]);
-                            if(normalVector == null) continue;
+                            for(let iteration = 0; iteration < 30; iteration++){
+                                closest1 = closestPointTo(OBB1, closest2);
+                                closest2 = closestPointTo(OBB2, closest1);
+                            }
+                            //normalVector = getCollisionNormalCubeCube(OBB1, OBB2, cubeAng[i], cubeAng[j]);
+                            //if(normalVector == null) normalVector = calculateNormal(OBB1.pos, OBB2.pos);
+                            
                             let contactPoint = [
                                 (closest1[0] + closest2[0]) / 2.0,
                                 (closest1[1] + closest2[1]) / 2.0,
                                 (closest1[2] + closest2[2]) / 2.0,
                             ];
+                            //let contactPoint = OBBcolliding.collisionPoint;
+                            normalVector = normalize(OBBcolliding.normal);
                             let r1 = [
                                 contactPoint[0] - OBB1.pos[0],
                                 contactPoint[1] - OBB1.pos[1],
@@ -931,65 +957,85 @@ function main(){
                                 v1[2] - v2[2],
                             ];
                             let contactVel = dotVec(relVel, normalVector);
-                            if(contactVel <= 0){
-                                const r1CrossN = crossVec(r1, normalVector);
-                                const r2CrossN = crossVec(r2, normalVector);
-                                
-                                const mass = 500.0;
-                                const invMass = 1 / mass;
+                            const r1CrossN = crossVec(r1, normalVector);
+                            const r2CrossN = crossVec(r2, normalVector);
+                            
+                            const mass = 1.0;
+                            const invMass = 1 / mass;
 
-                                let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
-                                let transformR1CrossN = [
-                                    r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
-                                    r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
-                                    r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
-                                ];
-                                let transformR2CrossN = [
-                                    r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
-                                    r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
-                                    r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
-                                ];
-                                let term1 = crossVec(r1CrossN, transformR1CrossN);
-                                let term2 = crossVec(r2CrossN, transformR2CrossN);
-                                let J = -(1 + .8) * contactVel / (invMass * 2 + dotVec(term1, normalVector) + dotVec(term2, normalVector));
-                                let impulse = [
-                                    normalVector[0] * J,
-                                    normalVector[1] * J,
-                                    normalVector[2] * J,
-                                ];
-                                possibleVel = [
-                                    cubeVel[i][0] + impulse[0] * invMass,
-                                    cubeVel[i][1] + impulse[1] * invMass,
-                                    cubeVel[i][2] + impulse[2] * invMass,
-                                ];
-                                cubeVel[j] = [
-                                    cubeVel[j][0] - impulse[0] * invMass,
-                                    cubeVel[j][1] - impulse[1] * invMass,
-                                    cubeVel[j][2] - impulse[2] * invMass,
-                                ];
-                                let angMultiplyR1 = crossVec(r1, impulse);
-                                angMultiplyR1 = [
-                                    angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
-                                    angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
-                                    angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
-                                ];
-                                let angMultiplyR2 = crossVec(r2, impulse);
-                                angMultiplyR2 = [
-                                    angMultiplyR2[0] * invInertia[0][0] + angMultiplyR2[1] * invInertia[0][1] + angMultiplyR2[2] * invInertia[0][2],
-                                    angMultiplyR2[0] * invInertia[1][0] + angMultiplyR2[1] * invInertia[1][1] + angMultiplyR2[2] * invInertia[1][2],
-                                    angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
-                                ];
-                                possibleAngVel = [
-                                    cubeAngVel[i][0] - angMultiplyR1[0] * 6.283 * deltaTime,
-                                    cubeAngVel[i][1] - angMultiplyR1[1] * 6.283 * deltaTime,
-                                    cubeAngVel[i][2] - angMultiplyR1[2] * 6.283 * deltaTime,
-                                ];
-                                cubeAngVel[j] = [
-                                    cubeAngVel[j][0] + angMultiplyR1[0] * 6.283 * deltaTime,
-                                    cubeAngVel[j][1] + angMultiplyR1[1] * 6.283 * deltaTime,
-                                    cubeAngVel[j][2] + angMultiplyR1[2] * 6.283 * deltaTime,
-                                ];
+                            let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
+                            let transformR1CrossN = [
+                                r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
+                                r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
+                                r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
+                            ];
+                            let transformR2CrossN = [
+                                r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
+                                r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
+                                r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
+                            ];
+                            let term1 = dotVec(transformR1CrossN, r1CrossN);
+                            let term2 = dotVec(transformR2CrossN, r2CrossN);
+                            let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
+                            let impulse = [
+                                normalVector[0] * J,
+                                normalVector[1] * J,
+                                normalVector[2] * J,
+                            ];
 
+                            if(OBBcolliding.penetrationDepth < 2.0){
+                                let penResolution = [
+                                    normalVector[0] * OBBcolliding.penetrationDepth,
+                                    normalVector[1] * OBBcolliding.penetrationDepth,
+                                    normalVector[2] * OBBcolliding.penetrationDepth,
+                                ];
+                                cubePos[i] = [
+                                    +cubePos[i][0] - penResolution[0],
+                                    +cubePos[i][1] - penResolution[1],
+                                    +cubePos[i][2] - penResolution[2],
+                                ];
+                                cubePos[j] = [
+                                    +cubePos[j][0] + penResolution[0],
+                                    +cubePos[j][1] + penResolution[1],
+                                    +cubePos[j][2] + penResolution[2],
+                                ];
+                            }
+
+
+                            cubeVel[i] = [
+                                cubeVel[i][0] + impulse[0] * invMass,
+                                cubeVel[i][1] + impulse[1] * invMass,
+                                cubeVel[i][2] + impulse[2] * invMass,
+                            ];
+                            cubeVel[j] = [
+                                cubeVel[j][0] - impulse[0] * invMass,
+                                cubeVel[j][1] - impulse[1] * invMass,
+                                cubeVel[j][2] - impulse[2] * invMass,
+                            ];
+                            let angMultiplyR1 = crossVec(r1, impulse);
+                            angMultiplyR1 = [
+                                angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
+                                angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
+                                angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
+                            ];
+                            let angMultiplyR2 = crossVec(r2, impulse);
+                            angMultiplyR2 = [
+                                angMultiplyR2[0] * invInertia[0][0] + angMultiplyR2[1] * invInertia[0][1] + angMultiplyR2[2] * invInertia[0][2],
+                                angMultiplyR2[0] * invInertia[1][0] + angMultiplyR2[1] * invInertia[1][1] + angMultiplyR2[2] * invInertia[1][2],
+                                angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
+                            ];
+                            cubeAngVel[i] = [
+                                cubeAngVel[i][0] + angMultiplyR1[0] * 6.28 * deltaTime,
+                                cubeAngVel[i][1] + angMultiplyR1[1] * 6.28 * deltaTime,
+                                cubeAngVel[i][2] + angMultiplyR1[2] * 6.28 * deltaTime,
+                            ];
+                            cubeAngVel[j] = [
+                                cubeAngVel[j][0] - angMultiplyR2[0] * 6.28 * deltaTime,
+                                cubeAngVel[j][1] - angMultiplyR2[1] * 6.28 * deltaTime,
+                                cubeAngVel[j][2] - angMultiplyR2[2] * 6.28 * deltaTime,
+                            ];
+
+                            
 
 
                                 /*if(cubeStatic[j]==0){
@@ -1009,10 +1055,8 @@ function main(){
                                     cubeVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
                                     cubeVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
                                 }*/
-                            }
 
-                            
-                        };
+                        }
                     }
                 }
                 // cube-sphere collisions
@@ -1028,7 +1072,6 @@ function main(){
                         let closestPoint = closestPointTo(OBB1, spherePos[j]);
                         if(getDistance(closestPoint, spherePos[j]) < 1.0) {
                             // colision response
-                            console.log("collision")
                             // define normal vector
                             normalVector = calculateNormal(possiblePos, closestPoint);
                             if(sphereStatic[j]==0){
@@ -1076,13 +1119,102 @@ function main(){
                 normalVector = calculateNormal(possiblePos, [possiblePos[0],46,possiblePos[2]]);
                 cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
             }
-            else if(possiblePos[1] <= 0.0) {
+            /*else if(possiblePos[1] <= 0.0) {
                 yColliding = true;
                 normalVector = calculateNormal(possiblePos, [possiblePos[0],-2,possiblePos[2]]);
                 cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
                 possibleVel[1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
                 frictionApplied = true;
+            }*/
+            let groundOBB = new OBB([+cubePos[i][0], -2, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
+            OBBcolliding = cubeCubeCollision(OBB1, groundOBB);
+            if(OBBcolliding.colliding){
+
+                /*let closest1 = closestPointTo(OBB1, groundOBB.pos);
+                let closest2 = closestPointTo(groundOBB, OBB1.pos);
+                for(let iteration = 0; iteration < 10; iteration++){
+                    closest1 = closestPointTo(OBB1, closest2);
+                    closest2 = closestPointTo(groundOBB, closest1);
+                }
+                let contactPoint = [
+                    (closest1[0] + closest2[0]) / 2,
+                    (closest1[1] + closest2[1]) / 2,
+                    (closest1[2] + closest2[2]) / 2,
+                ];*/
+                let contactPoint = OBBcolliding.collisionPoint;
+                //let normalVector = OBBcolliding.normal;
+                let normalVector = [0, 1, 0];
+                let r1 = [
+                    contactPoint[0] - OBB1.pos[0],
+                    contactPoint[1] - OBB1.pos[1],
+                    contactPoint[2] - OBB1.pos[2],
+                ];
+                let r2 = [
+                    contactPoint[0] - groundOBB.pos[0],
+                    contactPoint[1] - groundOBB.pos[1],
+                    contactPoint[2] - groundOBB.pos[2],
+                ];
+                let angVelR1 = crossVec(cubeAngVel[i], r1);
+                let relVel = [
+                    cubeVel[i][0] + angVelR1[0],
+                    cubeVel[i][1] + angVelR1[1],
+                    cubeVel[i][2] + angVelR1[2],
+                ];
+                let contactVel = dotVec(relVel, normalVector);
+                const r1CrossN = crossVec(r1, normalVector);
+                const r2CrossN = crossVec(r2, normalVector);
+                const mass = 1.0;
+                const invMass = 1/mass;
+                let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
+                let transformR1CrossN = [
+                    r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
+                    r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
+                    r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
+                ];
+                let transformR2CrossN = [
+                    r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
+                    r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
+                    r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
+                ];
+                let term1 = dotVec(transformR1CrossN, r1CrossN);
+                let term2 = dotVec(transformR2CrossN, r2CrossN);
+                let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
+                let impulse = [
+                    normalVector[0] * J,
+                    normalVector[1] * J,
+                    normalVector[2] * J,
+                ];
+
+                let penResolution = [
+                    normalVector[0] * OBBcolliding.penetrationDepth,
+                    normalVector[1] * OBBcolliding.penetrationDepth,
+                    normalVector[2] * OBBcolliding.penetrationDepth,
+                ];
+                cubePos[i] = [
+                    +cubePos[i][0] + penResolution[0],
+                    +cubePos[i][1] + penResolution[1],
+                    +cubePos[i][2] + penResolution[2],
+                ];
+
+                cubeVel[i] = [
+                    cubeVel[i][0] + impulse[0] * invMass,
+                    cubeVel[i][1] + impulse[1] * invMass,
+                    cubeVel[i][2] + impulse[2] * invMass,
+                ];
+                let angMultiplyR1 = crossVec(r1, impulse);
+                angMultiplyR1 = [
+                    angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
+                    angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
+                    angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
+                ];
+                cubeAngVel[i] = [
+                    cubeAngVel[i][0] + angMultiplyR1[0],
+                    cubeAngVel[i][1] + angMultiplyR1[1],
+                    cubeAngVel[i][2] + angMultiplyR1[2],
+                ];
+
             }
+            /*
             // updating unblocked position
             if(!xColliding){
                 cubeVel[i][0] = possibleVel[0];
@@ -1108,6 +1240,7 @@ function main(){
             // updating rotation
             cubeAng[i] = possibleAng;
             cubeAngVel[i] = possibleAngVel;
+            */
         }
     }
 
