@@ -323,7 +323,7 @@ function main(){
                 }
         }
         if(objType == "cube" && spawning){
-            cubePos.push([x, y, z]);
+            cubePos.push([+x, +y, +z]);
             cubeVel.push([+vx, +vy, +vz]);
             cubeAcc.push([0, -g, 0]);
             cubeAngVel.push([0, 0, 0]);
@@ -335,7 +335,7 @@ function main(){
                 cubeStatic.push(0);
         }
         else if(objType == "sphere" && spawning){
-            spherePos.push([x, y, z]);
+            spherePos.push([+x, +y, +z]);
             sphereVel.push([+vx, +vy, +vz]);
             sphereAcc.push([0, -g, 0]);
             if(staticCheck.checked == true)
@@ -672,14 +672,257 @@ function main(){
         }
         
         this.vertices = cubeVertices;
-
+        this.rotation = rotArr;
         this.axisX = rotateAxis([1, 0, 0], rotArr);
         this.axisY = rotateAxis([0, 1, 0], rotArr);
         this.axisZ = rotateAxis([0, 0, 1], rotArr);
         
     }
+    function solveCubeCubeCollision(cube1Pos, cube2Pos, cube1Vel, cube2Vel, cube1AngVel, cube2AngVel, normalVector, contactPoint, penDepth, isStatic){
+        let r1 = [
+            contactPoint[0] - cube1Pos[0],
+            contactPoint[1] - cube1Pos[1],
+            contactPoint[2] - cube1Pos[2],
+        ];
+        let r2 = [
+            contactPoint[0] - cube2Pos[0],
+            contactPoint[1] - cube2Pos[1],
+            contactPoint[2] - cube2Pos[2],
+        ];
+        let angVelR1 = crossVec(cube1AngVel, r1);
+        let angVelR2 = crossVec(cube2AngVel, r2);
+        let v1 = [
+            cube1Vel[0] + angVelR1[0],
+            cube1Vel[1] + angVelR1[1],
+            cube1Vel[2] + angVelR1[2],
+        ];
+        let v2 = [
+            cube2Vel[0] + angVelR2[0],
+            cube2Vel[1] + angVelR2[1],
+            cube2Vel[2] + angVelR2[2],
+        ]
+        let relVel = [
+            v1[0] - v2[0],
+            v1[1] - v2[1],
+            v1[2] - v2[2],
+        ];
+        let contactVel = dotVec(relVel, normalVector);
+        let r1CrossN = crossVec(r1, normalVector);
+        let r2CrossN = crossVec(r2, normalVector);
+        
+        const mass = 1.0;
+        const invMass = 1 / mass;
+
+        let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
+        let transformR1CrossN = [
+            r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
+            r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
+            r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
+        ];
+        let transformR2CrossN = [
+            r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
+            r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
+            r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
+        ];
+        let term1 = dotVec(transformR1CrossN, r1CrossN);
+        let term2 = dotVec(transformR2CrossN, r2CrossN);
+        let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
+        let impulse = [
+            normalVector[0] * J,
+            normalVector[1] * J,
+            normalVector[2] * J,
+        ];
+        
+        if(isStatic){
+            if(penDepth < 2.0){
+                let penResolution = [
+                    normalVector[0] * penDepth,
+                    normalVector[1] * penDepth,
+                    normalVector[2] * penDepth,
+                ];
+                cube1Pos = [
+                    +cube1Pos[0] + penResolution[0],
+                    +cube1Pos[1] + penResolution[1],
+                    +cube1Pos[2] + penResolution[2],
+                ];
+            }
+        }else{
+            if(penDepth < 2.0){
+                let penResolution = [
+                    normalVector[0] * penDepth,
+                    normalVector[1] * penDepth,
+                    normalVector[2] * penDepth,
+                ];
+                cube1Pos = [
+                    +cube1Pos[0] - penResolution[0],
+                    +cube1Pos[1] - penResolution[1],
+                    +cube1Pos[2] - penResolution[2],
+                ];
+                cube2Pos = [
+                    +cube2Pos[0] + penResolution[0],
+                    +cube2Pos[1] + penResolution[1],
+                    +cube2Pos[2] + penResolution[2],
+                ];
+            }
+        }
+
+        cube1Vel = [
+            cube1Vel[0] + impulse[0] * invMass,
+            cube1Vel[1] + impulse[1] * invMass,
+            cube1Vel[2] + impulse[2] * invMass,
+        ];
+        cube2Vel = [
+            cube2Vel[0] - impulse[0] * invMass,
+            cube2Vel[1] - impulse[1] * invMass,
+            cube2Vel[2] - impulse[2] * invMass,
+        ];
+        let angMultiplyR1 = crossVec(r1, impulse);
+        angMultiplyR1 = [
+            angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
+            angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
+            angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
+        ];
+        let angMultiplyR2 = crossVec(r2, impulse);
+        angMultiplyR2 = [
+            angMultiplyR2[0] * invInertia[0][0] + angMultiplyR2[1] * invInertia[0][1] + angMultiplyR2[2] * invInertia[0][2],
+            angMultiplyR2[0] * invInertia[1][0] + angMultiplyR2[1] * invInertia[1][1] + angMultiplyR2[2] * invInertia[1][2],
+            angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
+        ];
+        if(isStatic){
+            cube1AngVel = [
+                cube1AngVel[0] + angMultiplyR1[0],
+                cube1AngVel[1] + angMultiplyR1[1],
+                cube1AngVel[2] + angMultiplyR1[2],
+            ];
+            cube2AngVel = [
+                cube2AngVel[0] - angMultiplyR2[0],
+                cube2AngVel[1] - angMultiplyR2[1],
+                cube2AngVel[2] - angMultiplyR2[2],
+            ];
+        }  
+        else{
+            cube1AngVel = [
+                cube1AngVel[0] + angMultiplyR1[0] * 6.28 * deltaTime,
+                cube1AngVel[1] + angMultiplyR1[1] * 6.28 * deltaTime,
+                cube1AngVel[2] + angMultiplyR1[2] * 6.28 * deltaTime,
+            ];
+            cube2AngVel = [
+                cube2AngVel[0] - angMultiplyR2[0] * 6.28 * deltaTime,
+                cube2AngVel[1] - angMultiplyR2[1] * 6.28 * deltaTime,
+                cube2AngVel[2] - angMultiplyR2[2] * 6.28 * deltaTime,
+            ];
+        }
+        return {
+            cube1Pos,
+            cube2Pos,
+            cube1Vel,
+            cube2Vel,
+            cube1AngVel,
+            cube2AngVel
+        };
+    }
+    function solveCubeSphereCollision(cubePos, spherePos, cubeVel, sphereVel, cubeAngVel, normalVector, contactPoint, isCubeSphere){
+        let r1 = [
+            contactPoint[0] - cubePos[0],
+            contactPoint[1] - cubePos[1],
+            contactPoint[2] - cubePos[2],
+        ];
+        let r2 = [
+            contactPoint[0] - spherePos[0],
+            contactPoint[1] - spherePos[1],
+            contactPoint[2] - spherePos[2],
+        ];
+        let angVelR1 = crossVec(cubeAngVel, r1);
+        let v1 = [
+            cubeVel[0] + angVelR1[0],
+            cubeVel[1] + angVelR1[1],
+            cubeVel[2] + angVelR1[2],
+        ];
+        let relVel = [
+            v1[0] - sphereVel[0],
+            v1[1] - sphereVel[1],
+            v1[2] - sphereVel[2],
+        ];
+        let contactVel = dotVec(relVel, normalVector);
+        let r1CrossN = crossVec(r1, normalVector);
+        let r2CrossN = crossVec(r2, normalVector);
+        
+        const mass = 1.0;
+        const invMass = 1 / mass;
+
+        let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
+        let invInertiaSphere = [[5/(2*mass), 0.0, 0.0], [0.0, 5/(2*mass), 0.0], [0.0, 0.0, 5/(2*mass)]];
+        let transformR1CrossN = [
+            r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
+            r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
+            r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
+        ];
+        let transformR2CrossN = [
+            r2CrossN[0] * invInertiaSphere[0][0] + r2CrossN[1] * invInertiaSphere[0][1] + r2CrossN[2] * invInertiaSphere[0][2],
+            r2CrossN[0] * invInertiaSphere[1][0] + r2CrossN[1] * invInertiaSphere[1][1] + r2CrossN[2] * invInertiaSphere[1][2],
+            r2CrossN[0] * invInertiaSphere[2][0] + r2CrossN[1] * invInertiaSphere[2][1] + r2CrossN[2] * invInertiaSphere[2][2],
+        ];
+        let term1 = dotVec(transformR1CrossN, r1CrossN);
+        let term2 = dotVec(transformR2CrossN, r2CrossN);
+        let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
+        let impulse = [
+            normalVector[0] * J,
+            normalVector[1] * J,
+            normalVector[2] * J,
+        ];
+        if(isCubeSphere){
+            cubeVel = [
+                cubeVel[0] + impulse[0] * invMass,
+                cubeVel[1] + impulse[1] * invMass,
+                cubeVel[2] + impulse[2] * invMass,
+            ];
+            sphereVel = [
+                sphereVel[0] - impulse[0] * invMass,
+                sphereVel[1] - impulse[1] * invMass,
+                sphereVel[2] - impulse[2] * invMass,
+            ];
+        }
+        else{
+            cubeVel = [
+                cubeVel[0] - impulse[0] * invMass,
+                cubeVel[1] - impulse[1] * invMass,
+                cubeVel[2] - impulse[2] * invMass,
+            ];
+            sphereVel = [
+                sphereVel[0] + impulse[0] * invMass,
+                sphereVel[1] + impulse[1] * invMass,
+                sphereVel[2] + impulse[2] * invMass,
+            ];
+        }
+        let angMultiplyR1 = crossVec(r1, impulse);
+        angMultiplyR1 = [
+            angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
+            angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
+            angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
+        ];
+        if(isCubeSphere)
+            cubeAngVel = [
+                cubeAngVel[0] + angMultiplyR1[0],
+                cubeAngVel[1] + angMultiplyR1[1],
+                cubeAngVel[2] + angMultiplyR1[2],
+            ];
+        else
+            cubeAngVel = [
+                cubeAngVel[0] - angMultiplyR1[0],
+                cubeAngVel[1] - angMultiplyR1[1],
+                cubeAngVel[2] - angMultiplyR1[2],
+            ];
+
+        return {
+            cubePos,
+            spherePos,
+            cubeVel,
+            sphereVel,
+            cubeAngVel
+        };
+    }
     const frictionalCoeffS = 1.25;
-    const frictionalCoeffC = 4.0;
+    const frictionalCoeffC = 1.5;
     function updatePosition(deltaTime){
         let calculationDoneListSpheres = [];
         let calculationDoneListCubes = [];
@@ -710,35 +953,30 @@ function main(){
             let normalVector = [];
             // sphere-cube collisions
             for(let j=1; j<cubePos.length; j++){
-                let axisX = rotateAxis([1, 0, 0], cubeAng[j]);
-                let axisY = rotateAxis([0, 1, 0], cubeAng[j]);
-                let axisZ = rotateAxis([0, 0, 1], cubeAng[j]);
-                let OBB1 = new OBB(cubePos[j], cubeAng[j]);
+                let OBB1 = new OBB([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], cubeAng[j]);
                 let closestPoint = closestPointTo(OBB1, spherePos[i]);
                 if(getDistance(closestPoint, spherePos[i]) < 1.0) {
                     //collision response
 
                     // define normal vector
-                    let closestPoint = closestPointTo(OBB1, spherePos[i]);
-                        if(getDistance(closestPoint, spherePos[i]) < 1.0) {
-                            // colision response
-
-                            // define normal vector
-                            normalVector = calculateNormal(possiblePos, closestPoint);
-                            if(cubeStatic[j]==0){
-                                let otherCubeVel = Math.sqrt(Math.pow(cubeVel[j][0], 2.0) + Math.pow(cubeVel[j][1], 2.0) + Math.pow(cubeVel[j][2], 2.0));
-                                cubeVel[j][0] = (cubeVel[j][0] - normalVector[0] * thisSpeedVel - normalVector[0] * otherCubeVel) / 3.0;
-                                sphereVel[i][0] = (possibleVel[0] + normalVector[0] * otherCubeVel + normalVector[0] * thisSpeedVel) / 2.4;
-                                cubeVel[j][1] = (cubeVel[j][1] - normalVector[1] * thisSpeedVel - normalVector[1] * otherCubeVel) / 3.0;
-                                sphereVel[i][1] = (possibleVel[1] + normalVector[1] * otherCubeVel + normalVector[1] * thisSpeedVel) / 2.4;
-                                cubeVel[j][2] = (cubeVel[j][2] - normalVector[2] * thisSpeedVel - normalVector[2] * otherCubeVel) / 3.0;
-                            }
-                            else{
-                                sphereVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.4;
-                                sphereVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.4;
-                                sphereVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.4;
-                            }
+                    if(getDistance(closestPoint, spherePos[i]) < 1.0) {
+                        // colision response
+                        // define normal vector
+                        normalVector = calculateNormal(possiblePos, closestPoint);
+                        let sphereCubeCollision = solveCubeSphereCollision([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], spherePos[i], cubeVel[j], sphereVel[i], cubeAngVel[j], normalVector, closestPoint, false);
+                        if(cubeStatic[j]==0){
+                            cubePos[j] = sphereCubeCollision.cubePos;
+                            cubeVel[j] = sphereCubeCollision.cubeVel;
+                            cubeAngVel[j] = sphereCubeCollision.cubeAngVel;
+                            possiblePos = sphereCubeCollision.spherePos;
+                            possibleVel = sphereCubeCollision.sphereVel;
+                            calculationDoneListCubes.push(j);
                         }
+                        else{
+                            possiblePos = sphereCubeCollision.spherePos;
+                            possibleVel = sphereCubeCollision.sphereVel;
+                        }
+                    }
                 }
             }
             // sphere-sphere collisions
@@ -838,18 +1076,7 @@ function main(){
         }
         for(let i=1; i<cubePos.length; i++){
             while(cubeStatic[i] == 1) i++;
-            /*for(let j=0;j<calculationDoneListCubes.length;j++)
-            {
-                if(i==calculationDoneListCubes[j]) {
-                    i++;
-                    j=0;
-                    if(i>=cubePos.length) break;
-                }
-            }*/
             if(i>=cubePos.length) break;
-            let xColliding = false;
-            let yColliding = false;
-            let zColliding = false;
             let frictionApplied = false;
             let possibleVel = [
                 cubeVel[i][0] + cubeAcc[i][0] * deltaTime,
@@ -861,11 +1088,6 @@ function main(){
                 +cubePos[i][1] + cubeVel[i][1] * deltaTime,
                 +cubePos[i][2] + cubeVel[i][2] * deltaTime,
             ];
-            let prevPos = [
-                +cubePos[i][0] - cubeVel[i][0] * deltaTime,
-                +cubePos[i][1] - cubeVel[i][1] * deltaTime,
-                +cubePos[i][2] - cubeVel[i][2] * deltaTime,
-            ];
             let possibleAngVel= [
                 cubeAngVel[i][0] + cubeAngAcc[i][0] * deltaTime,
                 cubeAngVel[i][1] + cubeAngAcc[i][1] * deltaTime,
@@ -876,8 +1098,6 @@ function main(){
                 cubeAng[i][1] + cubeAngVel[i][1] * deltaTime,
                 cubeAng[i][2] + cubeAngVel[i][2] * deltaTime,
             ];
-            let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
-            let thisCubeVel = Math.sqrt(Math.pow(cubeVel[i][0], 2.0) + Math.pow(cubeVel[i][1], 2.0) + Math.pow(cubeVel[i][2], 2.0));
             let normalVector = [];
             let AABBcolliding = false;
             let OBBcolliding = false;
@@ -908,339 +1128,144 @@ function main(){
                 // cube-cube collisions
                 for(let j=1; j<cubePos.length; j++){
                     if(i!=j){
-                        let OBB2 = new OBB(cubePos[j], cubeAng[j]);
+                        let OBB2 = new OBB([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], cubeAng[j]);
                         OBBcolliding = cubeCubeCollision(OBB1, OBB2);
                         if(OBBcolliding.colliding) {
                             // colision response
-                            
                             let closest1 = closestPointTo(OBB1, OBB2.pos);
                             let closest2 = closestPointTo(OBB2, OBB1.pos);
                             for(let iteration = 0; iteration < 30; iteration++){
                                 closest1 = closestPointTo(OBB1, closest2);
                                 closest2 = closestPointTo(OBB2, closest1);
                             }
-                            //normalVector = getCollisionNormalCubeCube(OBB1, OBB2, cubeAng[i], cubeAng[j]);
-                            //if(normalVector == null) normalVector = calculateNormal(OBB1.pos, OBB2.pos);
-                            
                             let contactPoint = [
                                 (closest1[0] + closest2[0]) / 2.0,
                                 (closest1[1] + closest2[1]) / 2.0,
                                 (closest1[2] + closest2[2]) / 2.0,
                             ];
-                            //let contactPoint = OBBcolliding.collisionPoint;
                             normalVector = normalize(OBBcolliding.normal);
-                            let r1 = [
-                                contactPoint[0] - OBB1.pos[0],
-                                contactPoint[1] - OBB1.pos[1],
-                                contactPoint[2] - OBB1.pos[2],
-                            ];
-                            let r2 = [
-                                contactPoint[0] - OBB2.pos[0],
-                                contactPoint[1] - OBB2.pos[1],
-                                contactPoint[2] - OBB2.pos[2],
-                            ];
-                            let angVelR1 = crossVec(cubeAngVel[i], r1);
-                            let angVelR2 = crossVec(cubeAngVel[j], r2);
-                            let v1 = [
-                                cubeVel[i][0] + angVelR1[0],
-                                cubeVel[i][1] + angVelR1[1],
-                                cubeVel[i][2] + angVelR1[2],
-                            ];
-                            let v2 = [
-                                cubeVel[j][0] + angVelR2[0],
-                                cubeVel[j][1] + angVelR2[1],
-                                cubeVel[j][2] + angVelR2[2],
-                            ]
-                            let relVel = [
-                                v1[0] - v2[0],
-                                v1[1] - v2[1],
-                                v1[2] - v2[2],
-                            ];
-                            let contactVel = dotVec(relVel, normalVector);
-                            const r1CrossN = crossVec(r1, normalVector);
-                            const r2CrossN = crossVec(r2, normalVector);
-                            
-                            const mass = 1.0;
-                            const invMass = 1 / mass;
-
-                            let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
-                            let transformR1CrossN = [
-                                r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
-                                r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
-                                r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
-                            ];
-                            let transformR2CrossN = [
-                                r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
-                                r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
-                                r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
-                            ];
-                            let term1 = dotVec(transformR1CrossN, r1CrossN);
-                            let term2 = dotVec(transformR2CrossN, r2CrossN);
-                            let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
-                            let impulse = [
-                                normalVector[0] * J,
-                                normalVector[1] * J,
-                                normalVector[2] * J,
-                            ];
-
-                            if(OBBcolliding.penetrationDepth < 2.0){
-                                let penResolution = [
-                                    normalVector[0] * OBBcolliding.penetrationDepth,
-                                    normalVector[1] * OBBcolliding.penetrationDepth,
-                                    normalVector[2] * OBBcolliding.penetrationDepth,
-                                ];
-                                cubePos[i] = [
-                                    +cubePos[i][0] - penResolution[0],
-                                    +cubePos[i][1] - penResolution[1],
-                                    +cubePos[i][2] - penResolution[2],
-                                ];
-                                cubePos[j] = [
-                                    +cubePos[j][0] + penResolution[0],
-                                    +cubePos[j][1] + penResolution[1],
-                                    +cubePos[j][2] + penResolution[2],
-                                ];
+                            let solvedCollision = solveCubeCubeCollision(cubePos[i], cubePos[j], cubeVel[i], cubeVel[j], cubeAngVel[i], cubeAngVel[j], normalVector, contactPoint, OBBcolliding.penetrationDepth, false);
+                            if(cubeStatic[j] == 0){
+                                cubePos[i] = solvedCollision.cube1Pos;
+                                cubePos[j] = solvedCollision.cube2Pos;
+                                cubeVel[i] = solvedCollision.cube1Vel;
+                                cubeVel[j] = solvedCollision.cube2Vel;
+                                cubeAngVel[i] = solvedCollision.cube1AngVel;
+                                cubeAngVel[j] = solvedCollision.cube2AngVel;
                             }
-
-
-                            cubeVel[i] = [
-                                cubeVel[i][0] + impulse[0] * invMass,
-                                cubeVel[i][1] + impulse[1] * invMass,
-                                cubeVel[i][2] + impulse[2] * invMass,
-                            ];
-                            cubeVel[j] = [
-                                cubeVel[j][0] - impulse[0] * invMass,
-                                cubeVel[j][1] - impulse[1] * invMass,
-                                cubeVel[j][2] - impulse[2] * invMass,
-                            ];
-                            let angMultiplyR1 = crossVec(r1, impulse);
-                            angMultiplyR1 = [
-                                angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
-                                angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
-                                angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
-                            ];
-                            let angMultiplyR2 = crossVec(r2, impulse);
-                            angMultiplyR2 = [
-                                angMultiplyR2[0] * invInertia[0][0] + angMultiplyR2[1] * invInertia[0][1] + angMultiplyR2[2] * invInertia[0][2],
-                                angMultiplyR2[0] * invInertia[1][0] + angMultiplyR2[1] * invInertia[1][1] + angMultiplyR2[2] * invInertia[1][2],
-                                angMultiplyR2[0] * invInertia[2][0] + angMultiplyR2[1] * invInertia[2][1] + angMultiplyR2[2] * invInertia[2][2],
-                            ];
-                            cubeAngVel[i] = [
-                                cubeAngVel[i][0] + angMultiplyR1[0] * 6.28 * deltaTime,
-                                cubeAngVel[i][1] + angMultiplyR1[1] * 6.28 * deltaTime,
-                                cubeAngVel[i][2] + angMultiplyR1[2] * 6.28 * deltaTime,
-                            ];
-                            cubeAngVel[j] = [
-                                cubeAngVel[j][0] - angMultiplyR2[0] * 6.28 * deltaTime,
-                                cubeAngVel[j][1] - angMultiplyR2[1] * 6.28 * deltaTime,
-                                cubeAngVel[j][2] - angMultiplyR2[2] * 6.28 * deltaTime,
-                            ];
-
-                            
-
-
-                                /*if(cubeStatic[j]==0){
-                                    // transfer of velocity
-                                    let otherCubeVel = Math.sqrt(cubeVel[j][0] * cubeVel[j][0] + cubeVel[j][1] * cubeVel[j][1] + cubeVel[j][2] * cubeVel[j][2]);
-                                    cubeVel[j][0] = (cubeVel[j][0] - normalVector[0] * thisCubeVel - normalVector[0] * otherCubeVel) / 3.0;
-                                    cubeVel[i][0] = (possibleVel[0] + normalVector[0] * otherCubeVel + normalVector[0] * thisCubeVel) / 2.0;
-                                    cubeVel[j][1] = (cubeVel[j][1] - normalVector[1] * thisCubeVel - normalVector[1] * otherCubeVel) / 3.0;
-                                    cubeVel[i][1] = (possibleVel[1] + normalVector[1] * otherCubeVel + normalVector[1] * thisCubeVel) / 2.0;
-                                    cubeVel[j][2] = (cubeVel[j][2] - normalVector[2] * thisCubeVel - normalVector[2] * otherCubeVel) / 3.0;
-                                    cubeVel[i][2] = (possibleVel[2] + normalVector[2] * otherCubeVel + normalVector[2] * thisCubeVel) / 2.0;
-                                    
-                                }
-                                else{
-                                    // bounce
-                                    cubeVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 2.0;
-                                    cubeVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 2.0;
-                                    cubeVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 2.0;
-                                }*/
-
+                            else{
+                                cubePos[i] = solvedCollision.cube1Pos;
+                                cubeVel[i] = solvedCollision.cube1Vel;  
+                                cubeAngVel[i] = solvedCollision.cube1AngVel;
+                            }
                         }
                     }
                 }
                 // cube-sphere collisions
                 for(let j=0; j<spherePos.length; j++){
-                    let canCalculate = true;
-                    for(let k=0;k<calculationDoneListCubes;k++){
-                        if(calculationDoneListCubes[k]==i){
-                            canCalculate = false;
-                            break;
-                        }
-                    }
-                    if(canCalculate){
+                    if(!calculationDoneListCubes.includes(i)){
                         let closestPoint = closestPointTo(OBB1, spherePos[j]);
                         if(getDistance(closestPoint, spherePos[j]) < 1.0) {
                             // colision response
                             // define normal vector
-                            normalVector = calculateNormal(possiblePos, closestPoint);
+                            normalVector = calculateNormal(cubePos[i], closestPoint);
+                            let sphereCubeCollision = solveCubeSphereCollision(cubePos[i], spherePos[j], cubeVel[i], sphereVel[j], cubeAngVel[i], normalVector, closestPoint, true);
                             if(sphereStatic[j]==0){
-                                let otherSphereVel = Math.sqrt(Math.pow(sphereVel[j][0], 2.0) + Math.pow(sphereVel[j][1], 2.0) + Math.pow(sphereVel[j][2], 2.0));
-                                sphereVel[j][0] = (sphereVel[j][0] - normalVector[0] * thisCubeVel - normalVector[0] * otherSphereVel) / 2.0;
-                                cubeVel[i][0] = (possibleVel[0] + normalVector[0] * otherSphereVel + normalVector[0] * thisCubeVel) / 3.0;
-                                sphereVel[j][1] = (sphereVel[j][1] - normalVector[1] * thisCubeVel - normalVector[1] * otherSphereVel) / 2.0;
-                                cubeVel[i][1] = (possibleVel[1] + normalVector[1] * otherSphereVel + normalVector[1] * thisCubeVel) / 3.0;
-                                sphereVel[j][2] = (sphereVel[j][2] - normalVector[2] * thisCubeVel - normalVector[2] * otherSphereVel) / 2.0;
-                                cubeVel[i][2] = (possibleVel[2] + normalVector[2] * otherSphereVel + normalVector[2] * thisCubeVel) / 3.0;
+                                cubePos[i] = sphereCubeCollision.cubePos;
+                                cubeVel[i] = sphereCubeCollision.cubeVel;
+                                cubeAngVel[i] = sphereCubeCollision.cubeAngVel;
+                                spherePos[j] = sphereCubeCollision.spherePos;
+                                sphereVel[j] = sphereCubeCollision.sphereVel;
                             }
                             else{
-                                cubeVel[i][0] = normalVector[0] * Math.abs(possibleSpeed) / 3.0;
-                                cubeVel[i][1] = normalVector[1] * Math.abs(possibleSpeed) / 3.0;
-                                cubeVel[i][2] = normalVector[2] * Math.abs(possibleSpeed) / 3.0;
+                                cubePos[i] = sphereCubeCollision.cubePos;
+                                cubeVel[i] = sphereCubeCollision.cubeVel;
+                                cubeAngVel[i] = sphereCubeCollision.cubeAngVel;
                             }
                         }
                     }
+                    
                 }
             }
             // cube-wall collisions
-            if(possiblePos[0] >= 9){
-                xColliding = true;
-                normalVector = calculateNormal(possiblePos, [10, possiblePos[1], possiblePos[2]]);
-                cubeVel[i][0] = normalVector[0] * Math.abs(cubeVel[i][0]) / 3.0;
+            if(cubePos[i][0] >= 7){
+                let wallOBB = new OBB([11, +cubePos[i][1], +cubePos[i][2]], [cubeAng[i][0], 0, 0]);
+                OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [-1, 0, 0];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], wallOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
+                }
             }
-            else if(possiblePos[0] <= -9){
-                xColliding = true;
-                normalVector = calculateNormal(possiblePos, [-10, possiblePos[1], possiblePos[2]]);
-                cubeVel[i][0] = normalVector[0] * Math.abs(cubeVel[i][0]) / 3.0;
+            else if(cubePos[i][0] <= -7){
+                let wallOBB = new OBB([-11, +cubePos[i][1], +cubePos[i][2]], [cubeAng[i][0], 0, 0]);
+                OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [1, 0, 0];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], wallOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
+                }
             }
-            if(possiblePos[2] >= 9){
-                zColliding = true;
-                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], 10]);
-                cubeVel[i][2] = normalVector[2] * Math.abs(cubeVel[i][2]) / 3.0;
+            if(cubePos[i][2] >= 7){
+                let wallOBB = new OBB([+cubePos[i][0], +cubePos[i][1], 11], [0, 0, cubeAng[i][2]]);
+                OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [0, 0, -1];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], wallOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
+                }
             }
-            else if(possiblePos[2] <= -9){
-                zColliding = true;
-                normalVector = calculateNormal(possiblePos, [possiblePos[0], possiblePos[1], -10]);
-                cubeVel[i][2] = normalVector[2] * Math.abs(cubeVel[i][2]) / 3.0;
+            else if(cubePos[i][2] <= -7){
+                let wallOBB = new OBB([+cubePos[i][0], +cubePos[i][1], -11], [0, 0, cubeAng[i][2]]);
+                OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [0, 0, 1];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], wallOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
+                }
             }
             // cube-ground and cube-ceiling collision
-            if(possiblePos[1] >= 45.0) {
-                yColliding = true;
-                normalVector = calculateNormal(possiblePos, [possiblePos[0],46,possiblePos[2]]);
-                cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
-            }
-            /*else if(possiblePos[1] <= 0.0) {
-                yColliding = true;
-                normalVector = calculateNormal(possiblePos, [possiblePos[0],-2,possiblePos[2]]);
-                cubeVel[i][1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
-                possibleVel[1] = normalVector[1] * Math.abs(cubeVel[i][1]) / 3.0;
-                frictionApplied = true;
-            }*/
-            let groundOBB = new OBB([+cubePos[i][0], -2, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
-            OBBcolliding = cubeCubeCollision(OBB1, groundOBB);
-            if(OBBcolliding.colliding){
-
-                /*let closest1 = closestPointTo(OBB1, groundOBB.pos);
-                let closest2 = closestPointTo(groundOBB, OBB1.pos);
-                for(let iteration = 0; iteration < 10; iteration++){
-                    closest1 = closestPointTo(OBB1, closest2);
-                    closest2 = closestPointTo(groundOBB, closest1);
+            if(cubePos[i][1] >= 44){
+                let ceilingOBB = new OBB([+cubePos[i][0], 46, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
+                OBBcolliding = cubeCubeCollision(OBB1, ceilingOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [0, -1, 0];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], ceilingOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
                 }
-                let contactPoint = [
-                    (closest1[0] + closest2[0]) / 2,
-                    (closest1[1] + closest2[1]) / 2,
-                    (closest1[2] + closest2[2]) / 2,
-                ];*/
-                let contactPoint = OBBcolliding.collisionPoint;
-                //let normalVector = OBBcolliding.normal;
-                let normalVector = [0, 1, 0];
-                let r1 = [
-                    contactPoint[0] - OBB1.pos[0],
-                    contactPoint[1] - OBB1.pos[1],
-                    contactPoint[2] - OBB1.pos[2],
-                ];
-                let r2 = [
-                    contactPoint[0] - groundOBB.pos[0],
-                    contactPoint[1] - groundOBB.pos[1],
-                    contactPoint[2] - groundOBB.pos[2],
-                ];
-                let angVelR1 = crossVec(cubeAngVel[i], r1);
-                let relVel = [
-                    cubeVel[i][0] + angVelR1[0],
-                    cubeVel[i][1] + angVelR1[1],
-                    cubeVel[i][2] + angVelR1[2],
-                ];
-                let contactVel = dotVec(relVel, normalVector);
-                const r1CrossN = crossVec(r1, normalVector);
-                const r2CrossN = crossVec(r2, normalVector);
-                const mass = 1.0;
-                const invMass = 1/mass;
-                let invInertia = [[1.0/(0.6 * mass), 0.0, 0.0], [0.0, 1.0/(0.6 * mass), 0.0], [0.0, 0.0, 1.0/(0.6 * mass)]];
-                let transformR1CrossN = [
-                    r1CrossN[0] * invInertia[0][0] + r1CrossN[1] * invInertia[0][1] + r1CrossN[2] * invInertia[0][2],
-                    r1CrossN[0] * invInertia[1][0] + r1CrossN[1] * invInertia[1][1] + r1CrossN[2] * invInertia[1][2],
-                    r1CrossN[0] * invInertia[2][0] + r1CrossN[1] * invInertia[2][1] + r1CrossN[2] * invInertia[2][2],
-                ];
-                let transformR2CrossN = [
-                    r2CrossN[0] * invInertia[0][0] + r2CrossN[1] * invInertia[0][1] + r2CrossN[2] * invInertia[0][2],
-                    r2CrossN[0] * invInertia[1][0] + r2CrossN[1] * invInertia[1][1] + r2CrossN[2] * invInertia[1][2],
-                    r2CrossN[0] * invInertia[2][0] + r2CrossN[1] * invInertia[2][1] + r2CrossN[2] * invInertia[2][2],
-                ];
-                let term1 = dotVec(transformR1CrossN, r1CrossN);
-                let term2 = dotVec(transformR2CrossN, r2CrossN);
-                let J = -(1+.8) * contactVel / (invMass * 2 + term1 + term2);
-                let impulse = [
-                    normalVector[0] * J,
-                    normalVector[1] * J,
-                    normalVector[2] * J,
-                ];
-
-                let penResolution = [
-                    normalVector[0] * OBBcolliding.penetrationDepth,
-                    normalVector[1] * OBBcolliding.penetrationDepth,
-                    normalVector[2] * OBBcolliding.penetrationDepth,
-                ];
-                cubePos[i] = [
-                    +cubePos[i][0] + penResolution[0],
-                    +cubePos[i][1] + penResolution[1],
-                    +cubePos[i][2] + penResolution[2],
-                ];
-
-                cubeVel[i] = [
-                    cubeVel[i][0] + impulse[0] * invMass,
-                    cubeVel[i][1] + impulse[1] * invMass,
-                    cubeVel[i][2] + impulse[2] * invMass,
-                ];
-                let angMultiplyR1 = crossVec(r1, impulse);
-                angMultiplyR1 = [
-                    angMultiplyR1[0] * invInertia[0][0] + angMultiplyR1[1] * invInertia[0][1] + angMultiplyR1[2] * invInertia[0][2],
-                    angMultiplyR1[0] * invInertia[1][0] + angMultiplyR1[1] * invInertia[1][1] + angMultiplyR1[2] * invInertia[1][2],
-                    angMultiplyR1[0] * invInertia[2][0] + angMultiplyR1[1] * invInertia[2][1] + angMultiplyR1[2] * invInertia[2][2],
-                ];
-                cubeAngVel[i] = [
-                    cubeAngVel[i][0] + angMultiplyR1[0],
-                    cubeAngVel[i][1] + angMultiplyR1[1],
-                    cubeAngVel[i][2] + angMultiplyR1[2],
-                ];
-
             }
-            /*
-            // updating unblocked position
-            if(!xColliding){
-                cubeVel[i][0] = possibleVel[0];
-                if(frictionApplied)
-                    cubeVel[i][0] *= 1.0 - frictionalCoeffC * deltaTime;
-                cubePos[i][0] = possiblePos[0];
-            }
-            if(!yColliding){
-                cubeVel[i][1] = possibleVel[1];
-                cubePos[i][1] = possiblePos[1];
-            }
-            if(!zColliding){
-                cubeVel[i][2] = possibleVel[2];
-                if(frictionApplied)
-                    cubeVel[i][2] *= 1.0 - frictionalCoeffC * deltaTime;
-                cubePos[i][2] = possiblePos[2];
+            else if(cubePos[i][1] <= 2){
+                let groundOBB = new OBB([+cubePos[i][0], -2, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
+                OBBcolliding = cubeCubeCollision(OBB1, groundOBB);
+                if(OBBcolliding.colliding){
+                    let contactPoint = OBBcolliding.collisionPoint;
+                    let normalVector = [0, 1, 0];
+                    let solvedCollision = solveCubeCubeCollision(cubePos[i], groundOBB.pos, cubeVel[i], [0,0,0], cubeAngVel[i], [0,0,0], normalVector, contactPoint, OBBcolliding.penetrationDepth, true);
+                    cubePos[i] = solvedCollision.cube1Pos;
+                    cubeVel[i] = solvedCollision.cube1Vel;  
+                    cubeAngVel[i] = solvedCollision.cube1AngVel;
+                    frictionApplied = true;
+                }
             }
             if(frictionApplied){
-                possibleAngVel[0] *= 1.0 - frictionalCoeffC * deltaTime;
-                possibleAngVel[1] *= 1.0 - frictionalCoeffC * deltaTime;
-                possibleAngVel[2] *= 1.0 - frictionalCoeffC * deltaTime;
+                cubeVel[i][0] *= 1.0 - frictionalCoeffC * deltaTime;
+                cubeVel[i][2] *= 1.0 - frictionalCoeffC * deltaTime;
             }
-            // updating rotation
-            cubeAng[i] = possibleAng;
-            cubeAngVel[i] = possibleAngVel;
-            */
         }
     }
 
