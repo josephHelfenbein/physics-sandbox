@@ -37,7 +37,7 @@
 <h3 align="center">Physics Sandbox</h3>
 
   <p align="center">
-    A simple rigidbody physics simulator (UNFINISHED)
+    A simple rigidbody physics simulator
     <br />
     <br />
     <a href="https://josephhelfenbein.github.io/physics-sandbox">Visit</a>
