@@ -66,7 +66,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-A 3D physics engine made using JavaScript for the web. Featuring ray-traced shadows using WebGL and GLSL, particle dynamics, and rigid body dynamics (WIP).
+A 3D physics engine made using JavaScript for the web. Featuring ray-traced shadows using WebGL and GLSL, particle dynamics, and rigid body dynamics.
 
 
 ### Built With
@@ -87,7 +87,7 @@ A 3D physics engine made using JavaScript for the web. Featuring ray-traced shad
 - [x] UI object spawning
 - [x] Particle Dynamics
 - [x] UI spawn templates
-- [ ] Rigid Body Dynamics
+- [x] Rigid Body Dynamics
 
 
 See the [open issues](https://github.com/josephHelfenbein/physics-sandbox/issues) for a full list of proposed features (and known issues).

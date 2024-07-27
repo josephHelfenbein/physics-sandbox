@@ -503,22 +503,6 @@ function main(){
     function collidingSpheres(arr1, arr2){
         return getDistance(arr1, arr2) < 2.0;
     }
-    function collidingSphereCube(arrS, arrC){
-        let collisionPoint = [
-            arrS[0] - arrC[0],
-            arrS[1] - arrC[1],
-            arrS[2] - arrC[2],
-        ];
-        return (Math.abs(collisionPoint[0]) < 2.0 && Math.abs(collisionPoint[1]) < 2.0 && Math.abs(collisionPoint[2]) < 2.0) && (Math.sqrt(Math.pow(collisionPoint[0],2.0)+Math.pow(collisionPoint[1],2.0)+Math.pow(collisionPoint[2],2.0)) <= 2.414);
-    }
-    function collidingCubes(arr1, arr2){
-        let collisionPoint = [
-            arr1[0] - arr2[0],
-            arr1[1] - arr2[1],
-            arr1[2] - arr2[2],
-        ];
-        return (Math.abs(collisionPoint[0]) < 2.0 && Math.abs(collisionPoint[1]) < 2.0 && Math.abs(collisionPoint[2]) < 2.0);
-    }
     function calculateNormal(arr1, arr2){
         let dist = getDistance(arr1, arr2);
         return [
@@ -732,6 +716,7 @@ function main(){
             normalVector[1] * J,
             normalVector[2] * J,
         ];
+        let staticCube1Pos;
         
         if(isStatic){
             if(penDepth < 2.0){
@@ -741,9 +726,9 @@ function main(){
                     normalVector[2] * penDepth,
                 ];
                 cube1Pos = [
-                    +cube1Pos[0] + penResolution[0],
-                    +cube1Pos[1] + penResolution[1],
-                    +cube1Pos[2] + penResolution[2],
+                    cube1Pos[0] + penResolution[0],
+                    cube1Pos[1] + penResolution[1],
+                    cube1Pos[2] + penResolution[2],
                 ];
             }
         }else{
@@ -754,14 +739,19 @@ function main(){
                     normalVector[2] * penDepth,
                 ];
                 cube1Pos = [
-                    +cube1Pos[0] - penResolution[0],
-                    +cube1Pos[1] - penResolution[1],
-                    +cube1Pos[2] - penResolution[2],
+                    cube1Pos[0] - penResolution[0],
+                    cube1Pos[1] - penResolution[1],
+                    cube1Pos[2] - penResolution[2],
                 ];
                 cube2Pos = [
-                    +cube2Pos[0] + penResolution[0],
-                    +cube2Pos[1] + penResolution[1],
-                    +cube2Pos[2] + penResolution[2],
+                    cube2Pos[0] + penResolution[0],
+                    cube2Pos[1] + penResolution[1],
+                    cube2Pos[2] + penResolution[2],
+                ];
+                staticCube1Pos = [
+                    cube1Pos[0] + penResolution[0],
+                    cube1Pos[1] + penResolution[1],
+                    cube1Pos[2] + penResolution[2],
                 ];
             }
         }
@@ -800,7 +790,7 @@ function main(){
                 cube2AngVel[2] - angMultiplyR2[2],
             ];
         }  
-        else{
+        else{    
             cube1AngVel = [
                 cube1AngVel[0] + angMultiplyR1[0] * 6.28 * deltaTime,
                 cube1AngVel[1] + angMultiplyR1[1] * 6.28 * deltaTime,
@@ -818,7 +808,8 @@ function main(){
             cube1Vel,
             cube2Vel,
             cube1AngVel,
-            cube2AngVel
+            cube2AngVel,
+            staticCube1Pos
         };
     }
     function solveCubeSphereCollision(cubePos, spherePos, cubeVel, sphereVel, cubeAngVel, normalVector, contactPoint, isCubeSphere){
@@ -939,21 +930,21 @@ function main(){
                 sphereVel[i][2] + sphereAcc[i][2] * deltaTime,
             ];
             let possiblePos = [
-                +spherePos[i][0] + sphereVel[i][0] * deltaTime,
-                +spherePos[i][1] + sphereVel[i][1] * deltaTime,
-                +spherePos[i][2] + sphereVel[i][2] * deltaTime,
+                spherePos[i][0] + sphereVel[i][0] * deltaTime,
+                spherePos[i][1] + sphereVel[i][1] * deltaTime,
+                spherePos[i][2] + sphereVel[i][2] * deltaTime,
             ];
             let prevPos = [
-                +spherePos[i][0] - sphereVel[i][0] * deltaTime,
-                +spherePos[i][1] - sphereVel[i][1] * deltaTime,
-                +spherePos[i][2] - sphereVel[i][2] * deltaTime,
+                spherePos[i][0] - sphereVel[i][0] * deltaTime,
+                spherePos[i][1] - sphereVel[i][1] * deltaTime,
+                spherePos[i][2] - sphereVel[i][2] * deltaTime,
             ];
             let possibleSpeed = Math.sqrt(Math.pow(possibleVel[0], 2.0) + Math.pow(possibleVel[1], 2.0) + Math.pow(possibleVel[2], 2.0));
             let thisSpeedVel = Math.sqrt(Math.pow(sphereVel[i][0], 2.0) + Math.pow(sphereVel[i][1], 2.0) + Math.pow(sphereVel[i][2], 2.0));
             let normalVector = [];
             // sphere-cube collisions
             for(let j=1; j<cubePos.length; j++){
-                let OBB1 = new OBB([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], cubeAng[j]);
+                let OBB1 = new OBB(cubePos[j], cubeAng[j]);
                 let closestPoint = closestPointTo(OBB1, spherePos[i]);
                 if(getDistance(closestPoint, spherePos[i]) < 1.0) {
                     //collision response
@@ -963,7 +954,7 @@ function main(){
                         // colision response
                         // define normal vector
                         normalVector = calculateNormal(possiblePos, closestPoint);
-                        let sphereCubeCollision = solveCubeSphereCollision([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], spherePos[i], cubeVel[j], sphereVel[i], cubeAngVel[j], normalVector, closestPoint, false);
+                        let sphereCubeCollision = solveCubeSphereCollision(cubePos[j], spherePos[i], cubeVel[j], sphereVel[i], cubeAngVel[j], normalVector, closestPoint, false);
                         if(cubeStatic[j]==0){
                             cubePos[j] = sphereCubeCollision.cubePos;
                             cubeVel[j] = sphereCubeCollision.cubeVel;
@@ -1084,9 +1075,9 @@ function main(){
                 cubeVel[i][2] + cubeAcc[i][2] * deltaTime,
             ];
             let possiblePos = [
-                +cubePos[i][0] + cubeVel[i][0] * deltaTime,
-                +cubePos[i][1] + cubeVel[i][1] * deltaTime,
-                +cubePos[i][2] + cubeVel[i][2] * deltaTime,
+                cubePos[i][0] + cubeVel[i][0] * deltaTime,
+                cubePos[i][1] + cubeVel[i][1] * deltaTime,
+                cubePos[i][2] + cubeVel[i][2] * deltaTime,
             ];
             let possibleAngVel= [
                 cubeAngVel[i][0] + cubeAngAcc[i][0] * deltaTime,
@@ -1106,7 +1097,7 @@ function main(){
             cubeAngVel[i] = possibleAngVel;
             cubePos[i] = possiblePos;
             cubeAng[i] = possibleAng;
-            let OBB1 = new OBB([+cubePos[i][0], +cubePos[i][1], +cubePos[i][2]], cubeAng[i]);
+            let OBB1 = new OBB(cubePos[i], cubeAng[i]);
             // AABB collision testing
             for(let j=1; j<cubePos.length;j++){
                 if(i!=j)
@@ -1128,7 +1119,7 @@ function main(){
                 // cube-cube collisions
                 for(let j=1; j<cubePos.length; j++){
                     if(i!=j){
-                        let OBB2 = new OBB([+cubePos[j][0], +cubePos[j][1], +cubePos[j][2]], cubeAng[j]);
+                        let OBB2 = new OBB(cubePos[j], cubeAng[j]);
                         OBBcolliding = cubeCubeCollision(OBB1, OBB2);
                         if(OBBcolliding.colliding) {
                             // colision response
@@ -1189,7 +1180,7 @@ function main(){
             }
             // cube-wall collisions
             if(cubePos[i][0] >= 7){
-                let wallOBB = new OBB([11, +cubePos[i][1], +cubePos[i][2]], [cubeAng[i][0], 0, 0]);
+                let wallOBB = new OBB([11, cubePos[i][1], cubePos[i][2]], [cubeAng[i][0], 0, 0]);
                 OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
@@ -1201,7 +1192,7 @@ function main(){
                 }
             }
             else if(cubePos[i][0] <= -7){
-                let wallOBB = new OBB([-11, +cubePos[i][1], +cubePos[i][2]], [cubeAng[i][0], 0, 0]);
+                let wallOBB = new OBB([-11, cubePos[i][1], cubePos[i][2]], [cubeAng[i][0], 0, 0]);
                 OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
@@ -1213,7 +1204,7 @@ function main(){
                 }
             }
             if(cubePos[i][2] >= 7){
-                let wallOBB = new OBB([+cubePos[i][0], +cubePos[i][1], 11], [0, 0, cubeAng[i][2]]);
+                let wallOBB = new OBB([cubePos[i][0], cubePos[i][1], 11], [0, 0, cubeAng[i][2]]);
                 OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
@@ -1225,7 +1216,7 @@ function main(){
                 }
             }
             else if(cubePos[i][2] <= -7){
-                let wallOBB = new OBB([+cubePos[i][0], +cubePos[i][1], -11], [0, 0, cubeAng[i][2]]);
+                let wallOBB = new OBB([cubePos[i][0], cubePos[i][1], -11], [0, 0, cubeAng[i][2]]);
                 OBBcolliding = cubeCubeCollision(OBB1, wallOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
@@ -1238,7 +1229,7 @@ function main(){
             }
             // cube-ground and cube-ceiling collision
             if(cubePos[i][1] >= 44){
-                let ceilingOBB = new OBB([+cubePos[i][0], 46, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
+                let ceilingOBB = new OBB([cubePos[i][0], 46, cubePos[i][2]], [0, cubeAng[i][1], 0]);
                 OBBcolliding = cubeCubeCollision(OBB1, ceilingOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
@@ -1250,7 +1241,7 @@ function main(){
                 }
             }
             else if(cubePos[i][1] <= 2){
-                let groundOBB = new OBB([+cubePos[i][0], -2, +cubePos[i][2]], [0, cubeAng[i][1], 0]);
+                let groundOBB = new OBB([cubePos[i][0], -2, cubePos[i][2]], [0, cubeAng[i][1], 0]);
                 OBBcolliding = cubeCubeCollision(OBB1, groundOBB);
                 if(OBBcolliding.colliding){
                     let contactPoint = OBBcolliding.collisionPoint;
