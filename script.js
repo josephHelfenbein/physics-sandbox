@@ -257,6 +257,8 @@ function main(){
     document.getElementById('template2').onclick = function() {spawnTemplate(2)};
     document.getElementById('template3').onclick = function() {spawnTemplate(3)};
     document.getElementById('template4').onclick = function() {spawnTemplate(4)};
+    document.getElementById('template5').onclick = function() {spawnTemplate(5)};
+    document.getElementById('template6').onclick = function() {spawnTemplate(6)};
     const alertPlaceholder = document.getElementById('alertDiv')
     const inputx = document.getElementById('x-input');
     const inputy = document.getElementById('y-input');
@@ -295,6 +297,12 @@ function main(){
     }
     function spawnObject(){
         let objType = document.getElementById('object-choice').value;
+        inputx.value = (Number)(inputx.value).toString().match(/^-?\d+(?:\.\d{0,3})?/)[0];
+        inputy.value = (Number)(inputy.value).toString().match(/^-?\d+(?:\.\d{0,3})?/)[0];
+        inputz.value = (Number)(inputz.value).toString().match(/^-?\d+(?:\.\d{0,3})?/)[0];
+        inputvx.value = (Number)(inputvx.value).toString().match(/^-?\d+(?:\.\d{0,2})?/)[0];
+        inputvy.value = (Number)(inputvy.value).toString().match(/^-?\d+(?:\.\d{0,2})?/)[0];
+        inputvz.value = (Number)(inputvz.value).toString().match(/^-?\d+(?:\.\d{0,2})?/)[0];
         let x = inputx.value;
         let y = inputy.value;
         let z = inputz.value;
@@ -472,6 +480,66 @@ function main(){
                         }
                     }
                 }
+                break;
+            case 5:
+                for(let i=0; i<6; i++){
+                    inputy.value = 1 + i * 2.2;
+                    inputvx.value = 0;
+                    inputvy.value = 0;
+                    inputvz.value = 0;
+                    objType.value = "cube";
+                    staticCheck.checked = false;
+                    spawnObject();
+                }
+                break;
+            case 6:
+                for(let h=0; h<3; h++){
+                    for(let i=0; i<6; i++){
+                        inputx.value = i*2.1 -5;
+                        inputy.value = h * 2.2;
+                        inputz.value = 4.3;
+                        inputvx.value = 0;
+                        inputvy.value = 0;
+                        inputvz.value = 0;
+                        objType.value = "cube";
+                        staticCheck.checked = false;
+                        spawnObject();
+                    }
+                    for(let i=0; i<6; i++){
+                        inputx.value = i*2.1 -5;
+                        inputy.value = h * 2.2;
+                        inputz.value = -4.1;
+                        inputvx.value = 0;
+                        inputvy.value = 0;
+                        inputvz.value = 0;
+                        objType.value = "cube";
+                        staticCheck.checked = false;
+                        spawnObject();
+                    }
+                    for(let i=0; i<3; i++){
+                        inputx.value = -5;
+                        inputy.value = h * 2.2;
+                        inputz.value = i*2.1 -2;
+                        inputvx.value = 0;
+                        inputvy.value = 0;
+                        inputvz.value = 0;
+                        objType.value = "cube";
+                        staticCheck.checked = false;
+                        spawnObject();
+                    }
+                    for(let i=0; i<3; i++){
+                        inputx.value = 5.5;
+                        inputy.value = h * 2.2;
+                        inputz.value = i*2.1 -2;
+                        inputvx.value = 0;
+                        inputvy.value = 0;
+                        inputvz.value = 0;
+                        objType.value = "cube";
+                        staticCheck.checked = false;
+                        spawnObject();
+                    }
+                }
+                
                 break;
         }
     }
